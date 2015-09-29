@@ -97,6 +97,13 @@ c
 *     davgoc is its average value (m)
 *     ddynoc is the dynamic (rescaled) topography (s^-1)
 *
+#ifdef sponge_layer_k247 ! from Early 2009 PhD
+      double precision r_spl(nxpo,nypo)
+#else
+      double precision r_spl ! dummy variable
+#endif /* #ifdef sponge_layer_k247 */
+*     r_spl = a ramp function for Sponge Layer (A.9)
+
       END MODULE occonst
 c
 c***********************************************************************

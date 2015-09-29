@@ -265,6 +265,13 @@ c***********************************************************************
       write(10,121) 'dface= ',dface,
      &              ';    %% aTm    coefficient dface'
 
+      write(10,*) 
+      write(10,'(a)') '%%Parameters added by K247'
+      write(10,121) 'l_spl= ',l_spl,
+     &              ';    %% thickness of sponge layer [m]'
+      write(10,121) 'c1_spl= ',c1_spl,
+     &              ';    %% coefficient of sponge layer damping []'
+
   121 format(A,1P,E13.5,A,A)
   122 format(A,I10,A,A)
   125 format(A,7I2,A)

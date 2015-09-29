@@ -134,6 +134,15 @@ c
 *     N.B. need to ensure that (especially) nmcvoc doesn't
 *     exceed the maximum valid size for an integer*4 number
 
+! we cannnot use QGOPT for parameters_data.F (see Makefile)
+!#ifdef sponge_layer_k247
+      double precision :: c1_spl, l_spl
+! test29_22 survey c1_spl (l_spl=4D5) with dxo=4.od3 @2015-08-21~
+!   other settings: 480x480, cyclic
+!      PARAMETER ( c1_spl = -2.5D-3, l_spl = 4.0D5 ) ! 29_22f crashed @2015-08-22
+      PARAMETER ( c1_spl = -2.5D-5, l_spl = 4.0D5 ) ! 29_22d complete 2y run @2015-08-22
+!#endif /* #ifdef sponge_layer_k247 */
+      
       END MODULE parameters
 c
 c***********************************************************************

@@ -67,6 +67,11 @@ c
 #  ifdef cyclic_ocean
       double precision bdsums,bdsumn
 #  endif
+#ifdef sponge_layer_k247
+      double precision betay 
+#endif /* #ifdef sponge_layer_k247 */
+
+
 
       adfaco = 1.0d0/(12.0d0*dxo*dyo*fnot)
 *     Version with nondimensional bccooc
@@ -163,12 +168,23 @@ c     OCEANIC q STEP
 *     At this point the array del2p contains Del-sqd(lagged p)
 *     for the bottom layer k = nlo
 
+!*k247* add shared variable r_spl, yporel for sponge layer @2015-08-19
+
 !$OMP PARALLEL DO DEFAULT (NONE)
 !$OMP&         PRIVATE (i,j,k,qdot,qold)
+#ifdef sponge_layer_k247
+!$OMP&         PRIVATE  (betay)
+#endif /* #ifdef sponge_layer_k247 */
 !$OMP&         SHARED  (dqdt,fohfac,wekpo,entoc,
 !$OMP&                  bdrfac,del2p,qo,qom,tdto)
+#ifdef sponge_layer_k247
+!$OMP&         SHARED  (r_spl,yporel)
+#endif /* #ifdef sponge_layer_k247 */
 !$OMP&         SCHEDULE (STATIC)
       do j=2,nypo-1
+#ifdef sponge_layer_k247
+        betay = beta * yporel(j)
+#endif /* #ifdef sponge_layer_k247 */
         do i=1,nxpo
           qdot( 1 ) = dqdt(i,j,1)
      &               + fohfac(1)*( wekpo(i,j) - entoc(i,j) )
@@ -184,6 +200,9 @@ c     OCEANIC q STEP
           do k=1,nlo
             qold = qo(i,j,k)
             qo(i,j,k) = qom(i,j,k) + tdto*qdot(k)
+#ifdef sponge_layer_k247 ! from Early 2009 PhD
+     &               + tdto*c1_spl*r_spl(i,j)*(qom(i,j,k) - betay)
+#endif /* #ifdef sponge_layer_k247 */
             qom(i,j,k) = qold
           enddo
         enddo

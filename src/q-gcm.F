@@ -1131,6 +1131,44 @@ c   atmospheric mixed layer thickness
 #  endif
 #endif
 
+
+
+#ifdef sponge_layer_k247 ! from Early 2009 PhD
+      print *,' '
+      print *,' Set Sponge Layer (K247)'
+      print *,'   l_spl : ', l_spl
+      print *,'   c1_spl: ', c1_spl
+#  ifdef nospl_in_ewbdy_k247
+      print *,'     !CAUTION! N-S boundary Only!'
+#  endif ! #  ifdef nospl_in_ewbdy_k247
+      do i=1,nxpo
+      do j=1,nypo
+! 27_02~04
+        r_spl(i,j) = 0.0d0 
+     &             + exp( -2.0d0 * PI * ( ( 0.5d0 * dyo * dble(nypo)
+     &               - abs( dyo * dble(j) - 0.5d0 * dyo * dble(nypo) ) )
+     &               / ( l_spl ) )**2.0d0 )
+#  ifndef nospl_in_ewbdy_k247
+     &             + exp( -2.0d0 * PI * ( ( 0.5d0 * dxo * dble(nxpo)
+     &               - abs( dxo * dble(i) - 0.5d0 * dxo * dble(nxpo) ) )
+     &               / ( l_spl ) )**2.0d0 )
+#  endif ! #  ifndef nospl_in_ewbdy_k247
+! modify corner
+!        if ( r_spl(i,j) > 1.0d0 ) then
+!          r_spl(i,j) = 1.0d0
+!        end if
+! original equation ( does not work as sponge layer )
+!        r_spl(i,j) = exp( -2.0d0 * PI * ( ( 0.5d0 * dyo * dble(nypo)
+!     &               - abs( dyo * dble(j) - 0.5d0 * dyo * dble(nypo) ) )
+!     &               / ( l_spl ) )**2.0d0 )
+!     &             * exp( -2.0d0 * PI * ( ( 0.5d0 * dxo * dble(nxpo)
+!     &               - abs( dxo * dble(i) - 0.5d0 * dxo * dble(nxpo) ) )
+!     &               / ( l_spl ) )**2.0d0 )
+      enddo
+      enddo
+#endif /* #ifdef sponge_layer_k247 */
+
+
 *     Print sample of initial state
 *     -----------------------------
 *     (validity of initial state already tested)
