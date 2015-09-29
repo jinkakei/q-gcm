@@ -83,6 +83,7 @@ c***********************************************************************
 #ifdef use_netcdf
 *     Extra variables for netCDF input/output
       integer status
+      integer tempid, varid
 #else
 #  ifdef atmos_only
       character (len=*), parameter :: atforav='./atforce.avg.binary'
