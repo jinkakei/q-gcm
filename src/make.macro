@@ -40,14 +40,20 @@ FC = ifort -80 -fpp -std90 -xSSE2
 #FFLAGS = -O3 -ip -mp1 -fpe0 -align -automatic -static -warn
 #FFLAGS = -O3 -ipo -mp1 -fpe0 -align -automatic -static -openmp -warn all
 #FFLAGS = -O3 -ipo -mp1 -fpe0 -align -automatic -static -openmp -warn all,nointerfaces
-FFLAGS = -O3 -ip -mp1 -fpe0 -align -automatic -static -openmp -warn all,nointerfaces
+#FFLAGS = -O3 -ip -mp1 -fpe0 -align -automatic -static -openmp -warn all,nointerfaces
+
+FFLAGS = -O3 -ip -mp1 -fpe0 -align -openmp -warn all,nointerfaces
+
 #DEBUGS = -check all -ftrapuv -implicitnone -warn all -mp1 -automatic -fpe0 -static -g -traceback
-DEBUGS = -check all -ftrapuv -implicitnone -warn all,nointerfaces -mp1 -automatic -fpe0 -align -static -g -traceback
+#DEBUGS = -check all -ftrapuv -implicitnone -warn all,nointerfaces -mp1 -automatic -fpe0 -align -static -g -traceback
+
+DEBUGS = -check all -ftrapuv -implicitnone -warn all,nointerfaces -mp1 -automatic -fpe0 -align -g -traceback
+
 #FFLAGS = ${DEBUGS}
 #FFLAGS = ${DEBUGS} -openmp
 # Compiler flag(s) for test programs (usually simpler)
-TPFLAGS = -static
-#TPFLAGS = ${FFLAGS}
+#TPFLAGS = -static
+TPFLAGS = ${FFLAGS}
 #TPFLAGS = ${DEBUGS}
 
 # LAPACK/BLAS:
@@ -64,8 +70,10 @@ TPFLAGS = -static
 # See also http://software.intel.com/en-us/articles/avoiding-relocation-
 # errors-when-building-applications-with-large-global-or-static-data-on-intel64/
 # for a discussion of trying to add -mcmodel=medium
-MKLDIR = /nerc/packages/intel_compilers/intel_fc_11.1.072/mkl
-MKLPATH = ${MKLDIR}/lib/em64t
+#MKLDIR = /nerc/packages/intel_compilers/intel_fc_11.1.072/mkl
+#MKLPATH = ${MKLDIR}/lib/em64t
+MKLDIR = /opt/intel/composer_xe_2013_sp1.2.144/mkl
+MKLPATH = ${MKLDIR}/lib/intel64
 MKLINCLUDE = ${MKLDIR}/include
 LAPACK = -L${MKLPATH} -I${MKLINCLUDE} -Wl,--start-group ${MKLPATH}/libmkl_intel_lp64.a ${MKLPATH}/libmkl_sequential.a ${MKLPATH}/libmkl_core.a -Wl,--end-group -lpthread
 # version for single-thread testing:
@@ -82,15 +90,25 @@ LAPACK = -L${MKLPATH} -I${MKLINCLUDE} -Wl,--start-group ${MKLPATH}/libmkl_intel_
 # -------
 # Passing NCIDIR to the makefile and invoking as -I${NCIDIR} there doesn't
 # work; the invocation macro has to be complete or null. Hence use NCLINC.
-NCBASE = /noc/users/jeff/packages/netcdf/netcdf-3.6.3/xSSE2/intel11.1
+#NCBASE = /noc/users/jeff/packages/netcdf/netcdf-3.6.3/xSSE2/intel11.1
+NCBASE = /opt/cray/netcdf/4.2.0/intel/120
+#NCBASE = /opt/cray/netcdf/4.1.3/intel/120 # Error
 NCIDIR = ${NCBASE}/include
 # Derived symbols passed to Makefile:
 NCDINC = ${NCIDIR}/netcdf.inc
 NCINCL = -I${NCIDIR}
 # Static library link (preferred when using default -mcmodel=small)
-NCLINK = -L${NCBASE}/lib -lnetcdf
+#NCLINK = -L${NCBASE}/lib -lnetcdf
 # Shared library link (required when using -mcmodel=medium)
-#NCLINK = -L${NCBASE}/lib -Bdynamic -lnetcdff -lnetcdf
+NCLINK = -L${NCBASE}/lib -Bdynamic -lnetcdff -lnetcdf
+# 2015-09-28 by K247: Failed attempt to make huge data with netcdf4 
+#H5BASE = /opt/cray/hdf5/1.8.7/intel/120
+#H5BASE = /LARGE0/gr10056/t51063/lib/hdf5
+#ZLIB = /LARGE0/gr10056/t51063/lib/zlib
+#NCLINK = -L${NCBASE}/lib -Bdynamic -lnetcdff -lnetcdf -L${H5BASE}/lib -lhdf5_hl -lhdf5hl_fortran -lhdf5 -lhdf5_fortran -lz -lm
+#NCLINK = -L${NCBASE}/lib -Bdynamic -lnetcdff -lnetcdf -L${H5BASE}/lib -lhdf5_hl -lhdf5 -L${ZLIB}/lib -lz -lm
+#NCLINK = -L${NCBASE}/lib -Bdynamic -lnetcdff -lnetcdf -L${H5BASE}/lib -lhdf5_hl -lhdf5hl_fortran -lhdf5 -lhdf5_fortran -L${ZLIB}/lib -lz -lm
+# Note that if using shared libraries, need before running the program to do:
 # Note that if using shared libraries, need before running the program to do:
 # setenv NCBASE /noc/users/jeff/packages/netcdf/netcdf-3.6.3/xSSE2/intel11.1
 # setenv LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:${NCBASE}/lib"

@@ -53,6 +53,7 @@ c***********************************************************************
       integer i,j,k,m,nsko,nska,nstr,outfloc(7),outflat(7)
       double precision trun,valday,odiday,adiday,dgnday,resday,
      &                 dtavat,dtavoc,dtcovat,dtcovoc
+     &                ,prtday
       character (len=72) :: name
       character (len=80) :: outdir, inpbuf
 *     Extra variables for topography
