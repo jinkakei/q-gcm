@@ -99,4 +99,9 @@
       INCLUDE 'lapack/dlartg.f'             ! DLARTG =
       INCLUDE 'lapack/dorm2r.f'             ! DORM2R =
 *
+*     for lapack-3.5.0
+*     ----------------------------------
+      INCLUDE 'lapack/disnan.f'             ! ?
+      INCLUDE 'lapack/dlaisnan.f'           ! ?
+*
 *----------------------------------------------------------------------*

@@ -40,12 +40,18 @@ c
 *     User settable grid parameters:
       integer :: nxta,nyta,nla,nxaooc,nyaooc,ndxr,nlo
 *     Atmosphere
-      PARAMETER ( nxta =  384, nyta =  96, nla = 3 )  !! 80 km atmosphere
+!      PARAMETER ( nxta = 240, nyta = 120, nla = 3 )  !! k247: Early11 with 2km
+!      PARAMETER ( nxta = 120, nyta = 120, nla = 3 )  !! 80 km atmosphere
+!      PARAMETER ( nxta = 120, nyta =  60, nla = 3 )  !! 80 km atmosphere
+      PARAMETER ( nxta =  60, nyta =  60, nla = 3 )   !! 80 km atmosphere
+!     PARAMETER ( nxta =  384, nyta =  96, nla = 3 )  !! 80 km atmosphere
 !!    PARAMETER ( nxta =  512, nyta = 128, nla = 3 )  !! 60 km atmosphere
 !!    PARAMETER ( nxta =  768, nyta = 192, nla = 3 )  !! 40 km atmosphere
 !!    PARAMETER ( nxta = 1536, nyta = 384, nla = 3 )  !! 20 km atmosphere
 *     Ocean
-      PARAMETER ( nxaooc =  60, nyaooc =  60, ndxr = 16, nlo = 3 )  !! 80 km atm.
+!     for cyclic_ocean ( nxta = nxaooc )
+      PARAMETER ( nxaooc =nxta, nyaooc =nyta, ndxr = 16, nlo = 2 ) 
+!     PARAMETER ( nxaooc =  60, nyaooc =  60, ndxr = 16, nlo = 3 )  !! 80 km atm.
 !!    PARAMETER ( nxaooc =  80, nyaooc =  80, ndxr = 12, nlo = 3 )  !! 60 km atm.
 !!    PARAMETER ( nxaooc = 120, nyaooc = 120, ndxr =  8, nlo = 3 )  !! 40 km atm.
 !!    PARAMETER ( nxaooc = 240, nyaooc = 240, ndxr =  4, nlo = 3 )  !! 20 km atm.
@@ -94,7 +100,10 @@ c
 *     Rotation parameters (for both atmosphere and ocean)
 *     ---------------------------------------------------
       double precision :: fnot,beta
-      PARAMETER ( fnot = 9.37456D-05, beta = 1.75360D-11 )  !! 40 North
+!      PARAMETER ( fnot = 9.37456D-05, beta = 1.75360D-11 )  !! 40 North
+      PARAMETER ( fnot = 5.92D-05, beta = 2.08D-11 )  !! 24 North
+!         f0 = 2.0 * (2.0 * 3.141592 / 86400.0) * Math::sin(3.141592 * 24.0 /180.0)
+!         beta = 2.0 * (2.0 * 3.141592 / 86400.0) * Math::cos(3.141592 * 24.0 /180.0) / 6400_000
 
 *     fnot is the Coriolis parameter at the
 *     central latitude of the domain (rad s^-1)
