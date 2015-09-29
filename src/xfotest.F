@@ -44,6 +44,7 @@ c***********************************************************************
       USE eigmode
       USE radsubs
       USE topsubs
+      USE xfosubs
 #ifdef use_netcdf
       USE nc_subs
 #endif /* use_netcdf */
@@ -74,7 +75,7 @@ c***********************************************************************
      &        oceanonly,atmosonly,getcovar,outfloc(7),
      &        outflat(7),cyclicoc,hflxsb,hflxnb,tauudiff
       character (len=72) :: name
-      character (len-80) :: outdir, inpbuf
+      character (len=80) :: outdir, inpbuf
       logical resdmp,solnok
 *     Extra variables for topography
       character (len=80) :: topocname,topatname
@@ -800,6 +801,7 @@ c
       USE intrfac, ONLY : sst, sstm, sstbar, ast, astm, astbar,
      &                    hmixa, hmixam, hmat
       USE radiate
+      USE xfosubs, ONLY : fsprim
 
       IMPLICIT NONE
 
@@ -811,7 +813,7 @@ c
 *
 *     Local variables
       integer i,j,k
-      double precision fsprim,plfac(nla),play
+      double precision plfac(nla),play
 **    double precision sumc,sumcp,p1off
 
       print *,' '
