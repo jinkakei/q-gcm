@@ -244,12 +244,12 @@ xfotest: xfotest.F in_param.f ${MAKEFILE} parameters_data.F \
 	atconst_data.F occonst_data.F athomog_data.F ochomog_data.F \
 	atstate_data.F ocstate_data.F intrfac_data.F radiate_data.F \
 	timinfo_data.F monitor_data.F nc_subs.F eigmode.f \
-	${NCDINC} xfosubs.F topsubs.F radsubs.f intsubs.f
+	${NCDINC} xfosubs.F radsubs.f intsubs.f topsubs.F
 	${FC} ${TPFLAGS} ${QGOPTS} ${NCINCL} -o xfotest parameters_data.F \
         atconst_data.F occonst_data.F athomog_data.F ochomog_data.F \
         atstate_data.F ocstate_data.F intrfac_data.F radiate_data.F \
         timinfo_data.F monitor_data.F nc_subs.F xfosubs.F \
-	topsubs.F radsubs.f intsubs.f eigmode.f \
+	radsubs.f intsubs.f topsubs.F eigmode.f \
 	xfotest.F ${LAPSRC} ${LAPACK} ${NCLINK}
 
 EXECS = eigtest radtest toptest xfotest q-gcm
