@@ -1148,6 +1148,13 @@ c   atmospheric mixed layer thickness
 
 ****************    START OF MAIN TIMESTEPPING LOOP     ****************
 
+#ifdef no_oml_k247
+        print *,' '
+        print *,'!!!CAUTION CUT OML (for no wind, no bottom ekman)!!!'
+        print *,'     by K. Nishina'
+        print *,' '
+#endif /* no_oml_k247 */
+
       do 1000 nt=nsteps0+1,nsteps
 
         if ( mod(nt,nstr).eq.1 ) then
@@ -1158,8 +1165,10 @@ c   atmospheric mixed layer thickness
 #endif
 
 #ifndef atmos_only
+#ifndef no_oml_k247
 *         Step ocean mixed layer
           call oml
+#endif /* no_oml_k247 */
 #    ifdef qoc_diag
 *         Compute dq/dt diagnostics here, after entoc has
 *         been computed, but before po and qo are updated
