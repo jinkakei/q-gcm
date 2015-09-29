@@ -2,3 +2,5 @@
 work/
 # temporary log directory
 log/
+# temporary
+src_tmp
