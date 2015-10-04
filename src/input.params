@@ -119,9 +119,9 @@
 !! Configuration/control parameters
 !! --------------------------------
 !! Initial state. Options are: zero, rbal or the name of a restart file
-zero
+!zero
 !./lastday.nc
-!./restart.nc
+./restart.nc
 !! Ocean  topography. Options are: flat, define or the name of a file
 flat
 !! Atmos. topography. Options are: flat, define or the name of a file
