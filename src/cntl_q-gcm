@@ -34,25 +34,6 @@ echo $LS_SUBCWD
 cd $LS_SUBCWD
 
 
-# set forcing & restart file
-#ifort -warn all -o k247_make_restart_q-gcm.exe k247_make_restart_q-gcm.F90 -I/opt/cray/netcdf/4.2.0/intel/120/include -L/opt/cray/netcdf/4.2.0/intel/120/lib -lnetcdf -lnetcdff
-# for modon solution (add module bessel_k247) @2015-08-14
-ln -s ~/mod_ifort/bessel_k247.o
-ln -s ~/mod_ifort/bessel_k247.mod
-ifort -warn all -o k247_make_restart_q-gcm.exe k247_make_restart_q-gcm.F90 bessel_k247.o -I/opt/cray/netcdf/4.2.0/intel/120/include -L/opt/cray/netcdf/4.2.0/intel/120/lib -lnetcdf -lnetcdff
-./k247_make_restart_q-gcm.exe
-rm -f restart.nc
-refname=`cat ./restart_fname.txt`
-echo $refname
-ln -s $refname restart.nc
-ifort -warn all -o k247_make_forcing_q-gcm.exe k247_make_forcing_q-gcm.F90 -I/opt/cray/netcdf/4.2.0/intel/120/include -L/opt/cray/netcdf/4.2.0/intel/120/lib -lnetcdf -lnetcdff
-./k247_make_forcing_q-gcm.exe
-rm -f avges.nc
-fofname=`cat ./forcing_fname.txt`
-echo $fofname
-ln -s $fofname avges.nc
-
-
 EXEC="./q-gcm"
 
 echo " $EXEC Started                 -- `date`"
