@@ -1,0 +1,80 @@
+# $Id: 2015-02-14 modify cntl_qg by Kei Nishina $
+# $Id: cntl_07h33test 2012/06/20 by Kei Nishina $
+#!/bin/bash
+#============ LSF Options ============
+#QSUB -q gr10056a
+#QSUB -ug gr10056
+#QSUB -W 336:00
+#QSUB -A p=1:t=32:c=32:m=1920M
+
+####QSUB -A p=4:t=32:c=32:m=1920M
+#	[comment] duplicated run (src_test24/ A030422.o1005010)
+###QSUB -A p=1:t=128:c=128:m=1920M
+#	[error in prompt] Can not specify number of cores per process that is larger than the number of cores.
+###QSUB -A p=1:t=32:c=32:m=1920M
+# default
+
+# 32 is max thread / core number for System A camphor 
+#	( http://www.iimc.kyoto-u.ac.jp/ja/services/comp/supercomputer/)
+
+# cannot set argument by "> qsub cntl_q-gcm ARG" @2015-08-20
+#echo "argument number $#"
+#if [ $# -ne 1 ]; then
+#  echo "argument number is $#."
+#  echo "please set case_name only."
+#  exit 1
+#fi
+#echo "This case is $1"
+
+# start debug (http://shellscript.sunone.me/debug.html)
+set -x
+
+# LS_SUBCWD: the directory which job was entried
+echo $LS_SUBCWD
+cd $LS_SUBCWD
+
+
+# set forcing & restart file
+#ifort -warn all -o k247_make_restart_q-gcm.exe k247_make_restart_q-gcm.F90 -I/opt/cray/netcdf/4.2.0/intel/120/include -L/opt/cray/netcdf/4.2.0/intel/120/lib -lnetcdf -lnetcdff
+# for modon solution (add module bessel_k247) @2015-08-14
+ln -s ~/mod_ifort/bessel_k247.o
+ln -s ~/mod_ifort/bessel_k247.mod
+ifort -warn all -o k247_make_restart_q-gcm.exe k247_make_restart_q-gcm.F90 bessel_k247.o -I/opt/cray/netcdf/4.2.0/intel/120/include -L/opt/cray/netcdf/4.2.0/intel/120/lib -lnetcdf -lnetcdff
+./k247_make_restart_q-gcm.exe
+rm -f restart.nc
+refname=`cat ./restart_fname.txt`
+echo $refname
+ln -s $refname restart.nc
+ifort -warn all -o k247_make_forcing_q-gcm.exe k247_make_forcing_q-gcm.F90 -I/opt/cray/netcdf/4.2.0/intel/120/include -L/opt/cray/netcdf/4.2.0/intel/120/lib -lnetcdf -lnetcdff
+./k247_make_forcing_q-gcm.exe
+rm -f avges.nc
+fofname=`cat ./forcing_fname.txt`
+echo $fofname
+ln -s $fofname avges.nc
+
+
+EXEC="./q-gcm"
+
+echo " $EXEC Started                 -- `date`"
+#bgn_date=`date`
+bgn_date=`date +"%Y-%m-%d %H:%M"`
+
+export KMP_AFFINITY=disabled
+
+aprun -n $LSB_PROCS -d $LSB_CPUS -N $LSB_PPN $EXEC
+
+code=$?
+echo " $EXEC Ended CODE:= $code         -- `date`"
+
+#mail k-comheart@ezweb.ne.jp < endmsg.txt
+#echo " $LSB_JOBID Ended CODE:= $code         -- `date`" | mail k-comheart@ezweb.ne.jp
+
+## remove outdir-name file to avoid overwritten@2015-08-22
+## this process assumed to use qsub_k247.sh
+rm outdata.dat
+
+#end_date=`date`
+end_date=`date +"%m-%d %H:%M"`
+echo "Job $LSB_JOBID Ended CODE:= $code ( $bgn_date to $end_date )" | mail k-comheart@ezweb.ne.jp
+
+exit $code

@@ -94,12 +94,6 @@ program k247_make_restart_qgcm
 !        integer,parameter:: ini_ilen=800, ini_jlen=800
         integer,parameter:: ini_ilen=nxto/2 - 1, ini_jlen=nyto/2 - 1
         double precision,parameter:: l_efold = 8.0d1 * 1.0d3
-!!        double precision,parameter:: h_amp = 1.0d2 ! ssh = 10 cm (gpoc = 0.01)
-!!        double precision,parameter:: h_amp = 1.5d2 ! ssh = 15 cm (gpoc = 0.01)
-        ! 2015-02-24: ssh vs h0 in 2 or 1.5 layer 
-        !    ssh = ( g' / g) * h0 ! h0: interface
-!!        double precision h_interface(nxpo, nypo)
-!*        double precision ssh_dist(nxpo, nypo) ! nomodon
 
         double precision,parameter:: grav=9.8
 !        double precision,parameter:: ssh_amp=0.1D0 ! [m]
@@ -109,16 +103,24 @@ program k247_make_restart_qgcm
         double precision,parameter:: po2_percent=0.0D0
 !        double precision,parameter:: po2_percent=-20.0D0
 
+#ifndef use_modon
+!!        double precision,parameter:: h_amp = 1.0d2 ! ssh = 10 cm (gpoc = 0.01)
+!!        double precision,parameter:: h_amp = 1.5d2 ! ssh = 15 cm (gpoc = 0.01)
+        ! 2015-02-24: ssh vs h0 in 2 or 1.5 layer 
+        !    ssh = ( g' / g) * h0 ! h0: interface
+!!        double precision h_interface(nxpo, nypo)
+        double precision ssh_dist(nxpo, nypo) ! nomodon
 ! for eddy pair @2015-07-31
-!*        integer j_dist ! calculat from cnt_dist
+        integer j_dist ! calculat from cnt_dist
         !double precision,parameter:: cnt_dist = 0.0d0 ! rate of l_efold
-!*        double precision,parameter:: cnt_dist = 0.5d0 ! rate of l_efold ! nomodon
+        double precision,parameter:: cnt_dist = 0.5d0 ! rate of l_efold ! nomodon
         !double precision,parameter:: cnt_dist = 0.75d0 ! rate of l_efold
         !double precision,parameter:: cnt_dist = 1.0d0 ! rate of l_efold
-!*        double precision,parameter:: pair_amp = 0.0d0 ! rate of ssh_amp ! nomodon
+        double precision,parameter:: pair_amp = 0.0d0 ! rate of ssh_amp ! nomodon
 !*        double precision,parameter:: pair_amp = -1.0d0 ! rate of ssh_amp !nomodon
+#endif ! #ifndef use_modon
 
-!#ifdef NO_MODON
+#ifdef use_modon
 ! for modon @2015-08-13
         double precision r_now, Rdef
     ! k = k1 from Table III in Flierl et al. 1980
@@ -137,7 +139,7 @@ program k247_make_restart_qgcm
 !    double precision,parameter:: a=6.0d0, c=0.d0, k=5.1356 ! test for high-resolution @2015-08-14
 !    double precision,parameter:: a=10.0d0, c=0.d0, k=5.1356 ! bad ( too strong eddy -- 100 cm )
     double precision b1, r1, d1
-!#endif ! ifdef NO_MODON
+#endif ! ifdef use_modon
 
         ! set start time: 2014-09-07
         call system_clock(bgn_count, count_rate, count_max)
@@ -167,7 +169,7 @@ program k247_make_restart_qgcm
     ! 2015-02-23: based on set_ini in qg_rg.F90
         write(*,*) '  Initialize'
 
-!#ifdef NO_MODON
+#ifdef use_modon
 !* 2015-08-13: for modon test ( cf. k247_make_modon_qgcm.F90 )
         write(*,*) "    Modon Solution"
         write(*,*) "      a = ", a
@@ -215,10 +217,9 @@ program k247_make_restart_qgcm
      !   po(:,j_e,:) = 0.0d0 
      !    -> initial zero line is corrected, 
      !        but pmap seems to be same as 29_26a.
-!#endif !#ifdef NO_MODON
+#else !#ifdef use_modon
 
-
-#ifdef NOW_CUT ! 2015-08-13 for modon test
+! not modon
     ! 2017-07-31: for eddy pair
                 j_dist = int( ( cnt_dist * l_efold ) / dyo )
         write(*,*) '    set eddy pair'
@@ -256,7 +257,7 @@ program k247_make_restart_qgcm
       ! no flow in 2nd layer -- eq. (2.23) (manual for 1.5.0)
     !    po(:,:,1) = - gpoc * h_interface(:,:)
         po(:,:,1) = grav * ssh_dist(:,:)
-#endif ! 2015-08-13 for modon test
+#endif !#ifdef use_modon
         po(:,:,2) = ( po2_percent / 100.0D0 ) * po(:,:,1)
         pom(:,:,:) = po(:,:,:)
 
@@ -493,11 +494,13 @@ SUBROUTINE k247_set_fname_restart ( o_fn, dxo, ssha, l_ef, p2p)
                   'km_x'//trim(adjustl(c_nxto))// &
                   'y'//trim(adjustl(c_nyto))// &
                   'z'//trim(adjustl(c_nlo))// &
+#ifdef use_modon
                   '_modon.nc'
-!                  '_EddyA'//trim(adjustl(c_ssh_amp))// &
-!                  'Le'//trim(adjustl(c_le))// &
-!                  'PII'//trim(adjustl(c_p2p))//'.nc'
-! temp for modon @2015-08-13
+#else !#ifdef use_modon
+                  '_EddyA'//trim(adjustl(c_ssh_amp))// &
+                  'Le'//trim(adjustl(c_le))// &
+                  'PII'//trim(adjustl(c_p2p))//'.nc'
+#endif !#ifdef use_modon
       
       open (ipunit, file='./restart_fname.txt')
       write(ipunit,*) trim( adjustl( o_fn ) )
