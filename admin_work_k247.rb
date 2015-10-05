@@ -11,9 +11,14 @@ class Admin_work_k247
 # common
   def initialize
     @watcher = K247_Main_Watch.new
+    @bgn_time = time_now_str_sec
     check_subdirs
     @cp_files = ["../src/input.params", "../exec_qgcm.rb"]
-      # ToDo?: relative path from work dir
+    @link_files = ["*.F", "*.f", "make.macro", "make.config", \
+                   "Makefile", "cntl_q-gcm", "*.F90", "fftpack" ]
+      # CAUTION!: fftpack is directory, 
+      #           "$ rm -rf fftpack/" is remove original directory
+      #           "$ rm -f fftpack" is remove symbolic link file
   end
 
   def check_subdirs
@@ -24,7 +29,7 @@ class Admin_work_k247
         unless Dir::entries( current_path ).include?( d )
     end
     # for cleanup
-      @bk_dname = "#{current_path}/log/work_log/#{time_now_str_sec}"
+      @bk_dname = "#{current_path}/log/work_log/#{@bgn_time}"
   end
 
   def finish
@@ -49,11 +54,7 @@ class Admin_work_k247
     puts "set links to src files"
     src_path = "../src/"
     #src_path = "../src_test29/"
-    link_files = ["*.F", "*.f",  \
-             "make.macro", "make.config", "Makefile", \
-             "cntl_q-gcm", "*.F90", \
-             "fftpack/" ]
-    link_files.each do | f |
+    @link_files.each do | f |
       exec_command( "ln -s #{src_path}#{f} .")
     end
   end
@@ -65,6 +66,14 @@ class Admin_work_k247
       exec_command("cp -p #{cpf} .")
     end
   end
+
+  def set_goal
+    print "\nInput the Goal of this work dir: "
+    gnow = gets.chomp
+    File.open("Goal__#{gnow}__.txt", 'w') do | f |
+      f.puts "create: #{@bgn_time}"
+    end
+  end
   
 # for cleanup
   def mk_backupdir
@@ -74,19 +83,36 @@ class Admin_work_k247
   def check_cpfiles
     puts "check copied files #{@cp_files}"
     @cp_files.each do |org_f|
-      cpy_f = File.basename( org_f )
-      #puts "original: #{org_f}, copied: #{cpy_f}"
-      ret = popen3_wrap( "diff #{org_f} #{cpy_f}")
+      fname = File.basename( org_f )
+      ret = popen3_wrap( "diff #{org_f} ./#{fname}")
       if ret["o"][0] == 1
         puts "  no change"
       else
         show_stdoe( ret )
         if get_y_or_n("swap file? (y/n): ") == "y"
-          puts "  swap files"
+          puts "swap files"
+          exec_command( "mv #{org_f} ./#{fname}.before" )
+          exec_command( "cp -p ./#{fname} #{org_f}" )
         else
           puts "  change is not saved"
         end
       end
+    end
+  end
+
+  def make_clean
+    exec_command("make clean")
+  end
+
+  def rm_f_links
+    @link_files.each do | f |
+      exec_command( "rm -f #{f}" )
+    end
+  end
+
+  def mv_allfiles
+    if get_y_or_n("mv all files at work? (y/n): ") == "y"
+        exec_command("mv ./* #{@bk_dname}/")
     end
   end
 end # class qgcm_workdir

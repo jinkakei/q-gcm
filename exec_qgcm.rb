@@ -12,7 +12,6 @@ require '~/lib_k247/K247_qgcm'
 #
 #   - 
 #   - 
-#   - 
 
 
 

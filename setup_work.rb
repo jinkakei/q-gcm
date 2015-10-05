@@ -11,5 +11,5 @@ admin.cd_work
   admin.check_empty
   admin.set_links
   admin.copy_files
-
+  admin.set_goal
 admin.finish
