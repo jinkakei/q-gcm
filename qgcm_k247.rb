@@ -10,12 +10,10 @@ include NumRu
 
 ## copied from ~/lib_k247/K247_basic.rb
 
-
 def exit_with_msg( msg )
   print "\n\n!ERROR! #{msg}!\n\nexit\n\n"
   exit -1
 end
-
 
 ## END: copied from ~/lib_k247/K247_basic.rb
 
@@ -321,13 +319,14 @@ end # def init_etc
 # return  : none
 def self.prep_unify_outdata( cname=nil )
   exit_with_msg("input case name") if cname==nil
+  out_nf = self.prep_set_unified_fpath( cname )
 #here
-  fnames = self.prep_set_fpath( cname )
-    out_nf = fnames["out_nf"]
+  dpath = self.prep_set_dpath( cname )
+    self.prep_check_dpath( dpath )
+    ocpo_nf = dpath + "ocpo.nc"
+    monit_nf = dpath + "monit.nc"
+    inpara_nf = dpath + "input_parameters.m"
 =begin
-    ocpo_nf = fnames["dname"] + "ocpo.nc"
-    monit_nf = fnames["dname"] + "monit.nc"
-    inpara_nf = fnames["dname"] + "input_parameters.m"
   if ( File.exist?(ocpo_nf) ) && ( ! File.exist?(out_nf) ) then
     puts "Create #{out_nf}"
     out_fu = NetCDF.create( out_nf )
@@ -357,6 +356,7 @@ def self.prep_unify_outdata( cname=nil )
     exit_with_msg("#{out_nf} already exists!" ) if File.exist?(out_nf)
   end # if ( File.exist?(ocpo_nf) ) && ( ! File.exist?(out_nf) )
 =end
+  puts "end of unite outdata files"
 end # def self.prep_unify_outdata
 
 # Goal: reduce type
@@ -399,13 +399,6 @@ end
 #def self.prep_set_filenames( cname )
 # here
 def self.prep_set_unified_fpath( cname )
-=begin
-  fnames = Hash.new
-    fnames["dname"] = "./outdata_" + cname + "/"
-    gcname = self.prep_set_greater_cname
-    fnames["out_nf"] = fnames["dname"] \
-          + "q-gcm_" + gcname + "_" + cname + "_out.nc"
-=end
   dpath = self.prep_set_dpath( cname )
   gcname = self.prep_set_greater_cname
   return "#{dpath}q-gcm_#{gcname}_#{cname}_out.nc"
@@ -420,9 +413,6 @@ end # def self.prep_set_filenames( cname )
     end
     exit_with_msg("Goal__*__.txt is not exist") if goal_file[0] == nil
     return goal_file[0].split("__")[1]
-    # old ver ( 2015-10-06: change diretory structure )
-    #  full_path = File::expand_path( fnames["dname"] )
-    #  gcname = full_path.split("src_test")[1].split("/")[0]
   end
 
 # 2015-10-06: Too Long
@@ -676,10 +666,22 @@ require '~/lib_k247/minitest_unit_k247'
 #
 class Test_K247_qgcm_prep < MiniTest::Unit::TestCase
   def setup
-    @cname = "testc"
-    @gcname = "testg"
+    @cname = "test"
+    @gcname = "test"
     @goal_fname = "Goal__#{@gcname}__.txt"
     system("touch #{@goal_fname}")
+  # ToDo: What should be the format of data?
+    @dpath = "./outdata_#{@cname}/"
+    system("mkdir #{@dpath}")
+    ["ocpo.nc", "monit.nc", "input_parameters.m"].each do |fname|
+      system("touch #{@dpath+fname}")
+    end
+  end
+
+  def teardown
+    system("rm #{@goal_fname}")
+    system("rm -f #{@dpath}*")
+    system("rmdir #{@dpath}")
   end
 
   def test_exist_class
@@ -696,16 +698,25 @@ class Test_K247_qgcm_prep < MiniTest::Unit::TestCase
     assert_equal @gcname, gcname
   end
 
-#here
   def test_set_unified_fpath
     answer = "./outdata_#{@cname}/q-gcm_#{@gcname}_#{@cname}_out.nc"
     assert_equal answer, K247_qgcm_data.prep_set_unified_fpath( @cname )
   end
-
-  def teardown
-    system("rm #{@goal_fname}")
+#here
+  def test_dpath_has_elements?
+  #  puts Dir::glob( @dpath + "*")
+    assert K247_qgcm_data.prep_dpath_has_elements?( @dpath )
   end
+=begin
+=end
 end # Test_K247_qgcm_prep
+
+# tentative @ 2015-10-07
+class Array
+  def k247_include?
+    puts "empty"
+  end
+end
 
 class Test_K247_qgcm_data < MiniTest::Unit::TestCase
   def test_testmode
