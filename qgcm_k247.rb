@@ -321,11 +321,12 @@ def self.prep_unify_outdata( cname=nil )
   exit_with_msg("input case name") if cname==nil
   dpath = self.prep_set_dpath_with_check( cname )
 #here
-  out_nf = self.prep_set_unified_fpath( cname )
+  out_nf = self.prep_set_unified_fpath_with_check( cname )
+  gp_ocpo = self.prep_get_updated_po( dpath )
+=begin
     ocpo_nf = dpath + "ocpo.nc"
     monit_nf = dpath + "monit.nc"
     inpara_nf = dpath + "input_parameters.m"
-=begin
   if ( File.exist?(ocpo_nf) ) && ( ! File.exist?(out_nf) ) then
     puts "Create #{out_nf}"
     out_fu = NetCDF.create( out_nf )
@@ -350,10 +351,6 @@ def self.prep_unify_outdata( cname=nil )
       self.prep_write_inpara( { "out_fu"=>out_fu, "ocpo_fn"=>ocpo_nf, \
                                 "inpara_fn"=>inpara_nf} )
     out_fu.close
-  else # if ( File.exist?(ocpo_nf) ) && ( ! File.exist?(out_nf) )
-    exit_with_msg("#{ocpo_nf} does not exist!") unless File.exist?(ocpo_nf)
-    exit_with_msg("#{out_nf} already exists!" ) if File.exist?(out_nf)
-  end # if ( File.exist?(ocpo_nf) ) && ( ! File.exist?(out_nf) )
 =end
   puts "end of unite outdata files"
 end # def self.prep_unify_outdata
@@ -406,6 +403,63 @@ end
     return fpaths
   end
 
+
+def self.prep_set_unified_fpath_with_check( cname )
+  fpath = self.prep_set_unified_fpath( cname )
+  if File.exist?( fpath )
+    exit_with_msg( "outfile: #{fpath} is already exist")
+  else
+    return fpath
+  end
+end
+
+def self.prep_set_unified_fpath( cname )
+  dpath = self.prep_set_dpath( cname )
+  gcname = self.prep_set_greater_cname
+  return "#{dpath}q-gcm_#{gcname}_#{cname}_out.nc"
+end # def self.prep_set_filenames( cname )
+
+#
+#
+  def self.prep_set_greater_cname( arg=nil)
+  # ver. 2015-10-06: use ./Goal__*__.txt
+    goal_file = Dir::glob("./Goal__*__.txt")
+    if goal_file.length > 1
+      p goal_file
+      exit_with_msg("Test Goal must be one and only")
+    end
+    exit_with_msg("Goal__*__.txt is not exist") if goal_file[0] == nil
+    return goal_file[0].split("__")[1]
+  end
+
+# here
+  def self.prep_get_updated_po( dpath )
+    fpath = dpath + "ocpo.nc"
+    self.prep_check_ocpo( fpath )
+    # read data
+    # get grid
+    # modify grid
+    # restore gphys
+    gp_po_new = true # dummy
+    return gp_po_new
+  end
+
+    def self.prep_check_ocpo( fpath )
+      #GPhys::IO.is_a_NetCDF?( fpath ) # NoMethod?
+      self.prep_exit_if_ocpo_lack_p( fpath )
+      # how large? -> after get grid ( use apts )
+    end
+
+      def self.prep_exit_if_ocpo_lack_p( fpath )
+        unless self.prep_ocpo_has_p?( fpath )
+          exit_with_msg("#{fpath} does not include p") 
+        end
+      end
+
+      def self.prep_ocpo_has_p?( fpath )
+        return GPhys::IO.var_names( fpath ).include?("p")
+      end
+
   # 2015-09-11
   # argument : apts -- hash ( return of qg_p.get_axparts_k247() )
   # action   : anounce alart
@@ -420,31 +474,6 @@ end
     puts msg if current_size >= size_criterion 
   end
 
-# 2015-09-04
-#   copy & modify from k247_unify_qgcm.rb
-# ToDo
-##  - relax the assumption for file & dirname
-##    -- risky keyword "src_test"
-# argument: cname     ( string from stdin )
-# return  : filenames ( hash )
-#def self.prep_set_filenames( cname )
-# here
-def self.prep_set_unified_fpath( cname )
-  dpath = self.prep_set_dpath( cname )
-  gcname = self.prep_set_greater_cname
-  return "#{dpath}q-gcm_#{gcname}_#{cname}_out.nc"
-end # def self.prep_set_filenames( cname )
-
-  def self.prep_set_greater_cname( arg=nil)
-  # ver. 2015-10-06: use ./Goal__*__.txt
-    goal_file = Dir::glob("./Goal__*__.txt")
-    if goal_file.length > 1
-      p goal_file
-      exit_with_msg("Test Goal must be one and only")
-    end
-    exit_with_msg("Goal__*__.txt is not exist") if goal_file[0] == nil
-    return goal_file[0].split("__")[1]
-  end
 
 # 2015-10-06: Too Long
 def self.prep_write_monit( input )

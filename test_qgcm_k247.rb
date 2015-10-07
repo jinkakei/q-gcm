@@ -20,17 +20,20 @@ class Test_K247_qgcm_prep < MiniTest::Unit::TestCase
     @goal_fname = "Goal__#{@gcname}__.txt"
     system("touch #{@goal_fname}")
   # ToDo: What should be the format of data?
-    @dpath = "./outdata_#{@cname}/"
-    system("mkdir #{@dpath}")
+    @dpath_empty = "./outdata_#{@cname}/"
+    system("mkdir #{@dpath_empty}")
     ["ocpo.nc", "monit.nc", "input_parameters.m"].each do |fname|
-      system("touch #{@dpath+fname}")
+      system("touch #{@dpath_empty+fname}")
     end
+  # Dir has some data
+    # ToDo: must rename @ 2015-10-07
+    @dpath_dummy = "./log/test_qgcm_k247/"
   end
 
   def teardown
     system("rm #{@goal_fname}")
-    system("rm -f #{@dpath}*")
-    system("rmdir #{@dpath}")
+    system("rm -f #{@dpath_empty}*")
+    system("rmdir #{@dpath_empty}")
   end
 
   def test_exist_class
@@ -53,12 +56,16 @@ class Test_K247_qgcm_prep < MiniTest::Unit::TestCase
   end
 
   def test_dpath_has_elements
-    assert K247_qgcm_data.prep_dpath_has_elements?( @dpath )
+    assert K247_qgcm_data.prep_dpath_has_elements?( @dpath_empty )
     refute K247_qgcm_data.prep_dpath_has_elements?( "./nil_path/" )
   end
+
 #here
-  def test_set_unified_fname_with_check
-    assert K247_qgcm_data.prep_unified_file_exist?
+  def test_prep_ocpo_has_p?
+    assert K247_qgcm_data.prep_ocpo_has_p?( @dpath_dummy + "ocpo.nc" )
+  end
+  def test_prep_ocpo_read_p
+    assert K247_qgcm_data.prep_ocpo_read_p( @dpath_dummy + "ocpo.nc" )
   end
 =begin
 =end
