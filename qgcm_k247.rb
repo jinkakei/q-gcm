@@ -319,10 +319,9 @@ end # def init_etc
 # return  : none
 def self.prep_unify_outdata( cname=nil )
   exit_with_msg("input case name") if cname==nil
-  out_nf = self.prep_set_unified_fpath( cname )
+  dpath = self.prep_set_dpath_with_check( cname )
 #here
-  dpath = self.prep_set_dpath( cname )
-    self.prep_check_dpath( dpath )
+  out_nf = self.prep_set_unified_fpath( cname )
     ocpo_nf = dpath + "ocpo.nc"
     monit_nf = dpath + "monit.nc"
     inpara_nf = dpath + "input_parameters.m"
@@ -370,6 +369,43 @@ def check_case( cname )
 end
 
 
+
+  def self.prep_set_dpath( cname )
+    self.check_case(cname)
+    return "./outdata_#{cname}/"
+  end
+
+  def self.prep_set_dpath_with_check( cname )
+     dpath = self.prep_set_dpath( cname )
+     if self.prep_dpath_has_elements?( dpath )
+       return dpath
+     else
+       exit_with_msg( "#{dpath} lack element files")
+     end
+  end
+
+  def self.prep_dpath_has_elements?( dpath )
+    ofpaths = self.prep_set_original_fpaths( dpath )
+    current_fpaths = Dir::glob( dpath + "*" )
+    ofpaths.each do | f |
+      if current_fpaths.include?( f )
+        puts "  #{f} exist"
+      else
+        return false 
+      end
+    end
+    return true
+  end
+    
+  def self.prep_set_original_fpaths( dpath )
+    fnames = ["ocpo.nc", "monit.nc", "input_parameters.m"]
+    fpaths = []
+    fnames.each do | fn |
+      fpaths.push( dpath + fn )
+    end
+    return fpaths
+  end
+
   # 2015-09-11
   # argument : apts -- hash ( return of qg_p.get_axparts_k247() )
   # action   : anounce alart
@@ -382,11 +418,6 @@ end
     current_size = nxp * nyp * nz * ntime
     msg = "\n  INFO: Writing Huge Data ( please wait)\n"
     puts msg if current_size >= size_criterion 
-  end
-
-  def self.prep_set_dpath( cname )
-    self.check_case(cname)
-    return "./outdata_#{cname}/"
   end
 
 # 2015-09-04
@@ -702,27 +733,25 @@ class Test_K247_qgcm_prep < MiniTest::Unit::TestCase
     answer = "./outdata_#{@cname}/q-gcm_#{@gcname}_#{@cname}_out.nc"
     assert_equal answer, K247_qgcm_data.prep_set_unified_fpath( @cname )
   end
-#here
-  def test_dpath_has_elements?
-  #  puts Dir::glob( @dpath + "*")
+
+  def test_dpath_has_elements
     assert K247_qgcm_data.prep_dpath_has_elements?( @dpath )
+    refute K247_qgcm_data.prep_dpath_has_elements?( "./nil_path/" )
+  end
+#here
+  def test_set_unified_fname_with_check
+    assert K247_qgcm_data.prep_unified_file_exist?
   end
 =begin
 =end
 end # Test_K247_qgcm_prep
 
-# tentative @ 2015-10-07
-class Array
-  def k247_include?
-    puts "empty"
-  end
-end
-
+=begin
 class Test_K247_qgcm_data < MiniTest::Unit::TestCase
   def test_testmode
     obj = K247_qgcm_data.new("__testmode__")
     assert obj.is_testmode?
   end
 end # Test_K247_qgcm_data
-
+=end
 end # if $0 == __FILE__ then
