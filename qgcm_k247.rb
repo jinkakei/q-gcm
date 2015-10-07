@@ -44,7 +44,7 @@ class K247_qgcm_data
 #   - consider filenames and directory structures
 #   - consider necessary components of initialize
 #
-# arguments: argv -- casename or filename ( return of self.prep_integrate_outdata )
+# arguments: argv -- casename or filename ( return of self.prep_unify_outdata )
 # return   : none
 # action   : set instance variables
 def initialize( argv )
@@ -72,7 +72,7 @@ end # initialize
 # methods index
 ## - instance methods for check 
 ## - instance methods for initialzie
-## - class methods for preparation ( integrate outdata_*/* )
+## - class methods for preparation ( unify outdata_*/* )
 
 
 
@@ -172,7 +172,7 @@ def init_fname( input )
     nc_fn = conv_cname_to_fname( input )
   end
   exit_with_msg("No Such File #{nc_fn}") unless File.exist?( nc_fn )
-  puts "Integrated filename: #{nc_fn}"
+  puts "unified filename: #{nc_fn}"
   return nc_fn
 end
   def conv_cname_to_fname( cname )
@@ -297,9 +297,9 @@ end # def init_etc
       return self.class.prep_set_filenames( cname )["dname"]
     end
 
-## - class methods for preparation ( integrate outdata_*/* )
+## - class methods for preparation ( unify outdata_*/* )
 ##  contents@2015-09-02
-##   - self.prep_integrate_outdata( cname )
+##   - self.prep_unify_outdata( cname )
 ##   - self.prep_set_filename( cname )
 ##     --  self.prep_set_greater_cname( arg=nil)
 ##   - self.prep_write_monit( input )
@@ -319,10 +319,10 @@ end # def init_etc
 # argument: cname -- casename ( String, donot include "_" )
 # action  : read outdata_YY/??? & write outdata_YY/qgcm_XX_YY_out.nc
 # return  : none
-def self.prep_integrate_outdata( cname=nil )
+def self.prep_unify_outdata( cname=nil )
   exit_with_msg("input case name") if cname==nil
 #here
-  fnames = self.prep_set_filenames( cname )
+  fnames = self.prep_set_fpath( cname )
     out_nf = fnames["out_nf"]
 =begin
     ocpo_nf = fnames["dname"] + "ocpo.nc"
@@ -357,7 +357,18 @@ def self.prep_integrate_outdata( cname=nil )
     exit_with_msg("#{out_nf} already exists!" ) if File.exist?(out_nf)
   end # if ( File.exist?(ocpo_nf) ) && ( ! File.exist?(out_nf) )
 =end
-end # def self.prep_integrate_outdata
+end # def self.prep_unify_outdata
+
+# Goal: reduce type
+#   ToDo: change place
+#   memo: error message should be displayed @ 2015-10-07
+def self.check_case( cname )
+  exit_with_msg("input case name") if cname==nil
+end
+def check_case( cname )
+  exit_with_msg("input case name") if cname==nil
+end
+
 
   # 2015-09-11
   # argument : apts -- hash ( return of qg_p.get_axparts_k247() )
@@ -373,22 +384,31 @@ end # def self.prep_integrate_outdata
     puts msg if current_size >= size_criterion 
   end
 
+  def self.prep_set_dpath( cname )
+    self.check_case(cname)
+    return "./outdata_#{cname}/"
+  end
+
 # 2015-09-04
-#   copy & modify from k247_integrate_qgcm.rb
+#   copy & modify from k247_unify_qgcm.rb
 # ToDo
 ##  - relax the assumption for file & dirname
 ##    -- risky keyword "src_test"
 # argument: cname     ( string from stdin )
 # return  : filenames ( hash )
-def self.prep_set_filenames( cname )
-  
+#def self.prep_set_filenames( cname )
+# here
+def self.prep_set_unified_fpath( cname )
+=begin
   fnames = Hash.new
     fnames["dname"] = "./outdata_" + cname + "/"
     gcname = self.prep_set_greater_cname
     fnames["out_nf"] = fnames["dname"] \
           + "q-gcm_" + gcname + "_" + cname + "_out.nc"
-
-  return fnames
+=end
+  dpath = self.prep_set_dpath( cname )
+  gcname = self.prep_set_greater_cname
+  return "#{dpath}q-gcm_#{gcname}_#{cname}_out.nc"
 end # def self.prep_set_filenames( cname )
 
   def self.prep_set_greater_cname( arg=nil)
@@ -476,7 +496,7 @@ end # def self.prep_write_inpara( input )
 
   # Convert English for KUDPC
   # 2015-07-25 -- Create
-  #   read input_parameters.m for integrate qgcm outdata
+  #   read input_parameters.m for unify qgcm outdata
   # 2015-08-24 -- edit
   #  Comment: layered parameters are difficult to read.
   #
@@ -607,7 +627,7 @@ end # def self.prep_write_inpara( input )
 # argument: apts -- axes_parts ( hash, return of gphys_obj.get_axparts_k247 )
 def self.prep_modify_grid( apts )
 
-# version A.0.0.1 in k247_integrate_qgcmout.rb @2015-08-29
+# version A.0.0.1 in k247_unify_qgcmout.rb @2015-08-29
   puts "  ocpo.nc@p: replace X,Y Axis ( 0 at center)"
     nxp = apts['xp']['val'].length
     dx =  apts['xp']['val'][1] - apts['xp']['val'][0]
@@ -621,11 +641,13 @@ def self.prep_modify_grid( apts )
 
 end # def self.prep_modify_grid( apts )
 
-
+def self.exist_class?
+  return true
+end
 
 ## End: class methods for prepare
 
-
+# end_of_class
 end # class K247_qgcm_data
 
 
@@ -652,10 +674,36 @@ require '~/lib_k247/minitest_unit_k247'
 #   init ( init __testmode__ )
 #   normal ( with full initialize )
 #
-#here
 class Test_K247_qgcm_prep < MiniTest::Unit::TestCase
-  def test_
-    assert obj.is_testmode?
+  def setup
+    @cname = "testc"
+    @gcname = "testg"
+    @goal_fname = "Goal__#{@gcname}__.txt"
+    system("touch #{@goal_fname}")
+  end
+
+  def test_exist_class
+    assert K247_qgcm_data.exist_class?
+  end
+
+  def test_set_dpath
+    assert_equal "./outdata_#{@cname}/", \
+                 K247_qgcm_data.prep_set_dpath( @cname )
+  end
+
+  def test_set_greater_cname
+    gcname = K247_qgcm_data.prep_set_greater_cname
+    assert_equal @gcname, gcname
+  end
+
+#here
+  def test_set_unified_fpath
+    answer = "./outdata_#{@cname}/q-gcm_#{@gcname}_#{@cname}_out.nc"
+    assert_equal answer, K247_qgcm_data.prep_set_unified_fpath( @cname )
+  end
+
+  def teardown
+    system("rm #{@goal_fname}")
   end
 end # Test_K247_qgcm_prep
 
