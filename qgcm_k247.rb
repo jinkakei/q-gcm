@@ -2,20 +2,8 @@
 # -*- coding: utf-8 -*-
 
 # load libraries
-require "numru/gphys"
-require "numru/ggraph"
-include NumRu
-#require "~/lib_k247/K247_basic"
+require_relative "lib_k247_for_qgcm"
 
-
-## copied from ~/lib_k247/K247_basic.rb
-
-def exit_with_msg( msg )
-  print "\n\n!ERROR! #{msg}!\n\nexit\n\n"
-  exit -1
-end
-
-## END: copied from ~/lib_k247/K247_basic.rb
 
 class K247_qgcm_data
 
