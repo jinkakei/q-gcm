@@ -55,11 +55,11 @@ class Test_K247_qgcm_prep < MiniTest::Unit::TestCase
   end
 
 #here
-  def test_prep_ocpo_has_p?
-    assert K247_qgcm_data.prep_ocpo_has_p?( @dpath_dummy + "ocpo.nc" )
+  def test_prep_ocpo_has_po?
+    assert K247_qgcm_data.prep_ocpo_has_po?( @dpath_dummy + "ocpo.nc" )
   end
-  def test_prep_ocpo_read_p
-    assert K247_qgcm_data.prep_ocpo_read_p( @dpath_dummy + "ocpo.nc" )
+  def test_prep_calc_po_size
+    assert_equal 961*961*2*2, K247_qgcm_data.prep_calc_po_size( @dpath_dummy + "ocpo.nc" )
   end
 =begin
 =end

@@ -320,8 +320,8 @@ end # def init_etc
 def self.prep_unify_outdata( cname=nil )
   exit_with_msg("input case name") if cname==nil
   dpath = self.prep_set_dpath_with_check( cname )
-#here
   out_nf = self.prep_set_unified_fpath_with_check( cname )
+#here
   gp_ocpo = self.prep_get_updated_po( dpath )
 =begin
     ocpo_nf = dpath + "ocpo.nc"
@@ -353,6 +353,7 @@ def self.prep_unify_outdata( cname=nil )
     out_fu.close
 =end
   puts "end of unite outdata files"
+  return true # temporary for test
 end # def self.prep_unify_outdata
 
 # Goal: reduce type
@@ -432,11 +433,15 @@ end # def self.prep_set_filenames( cname )
     return goal_file[0].split("__")[1]
   end
 
-# here
   def self.prep_get_updated_po( dpath )
     fpath = dpath + "ocpo.nc"
     self.prep_check_ocpo( fpath )
-    # read data
+    gp_po = GPhys::IO.open( fpath, 'p')
+# here
+  # old name
+  #  new_grid = self.prep_modify_grid( apts )
+  # new name
+  #  new_grid = self.prep_modify_po_grid( gp_po )
     # get grid
     # modify grid
     # restore gphys
@@ -446,19 +451,35 @@ end # def self.prep_set_filenames( cname )
 
     def self.prep_check_ocpo( fpath )
       #GPhys::IO.is_a_NetCDF?( fpath ) # NoMethod?
-      self.prep_exit_if_ocpo_lack_p( fpath )
-      # how large? -> after get grid ( use apts )
+      self.prep_exit_if_ocpo_lack_po( fpath )
+      self.prep_check_po_size( fpath )
     end
 
-      def self.prep_exit_if_ocpo_lack_p( fpath )
-        unless self.prep_ocpo_has_p?( fpath )
+      def self.prep_exit_if_ocpo_lack_po( fpath )
+        unless self.prep_ocpo_has_po?( fpath )
           exit_with_msg("#{fpath} does not include p") 
         end
       end
 
-      def self.prep_ocpo_has_p?( fpath )
+      def self.prep_ocpo_has_po?( fpath )
         return GPhys::IO.var_names( fpath ).include?("p")
       end
+      
+      def self.prep_check_po_size( fpath )
+        size_criterion = 960 * 960 * 2 * 36
+        current_size = self.prep_calc_po_size( fpath )
+        msg = "\n\n  INFO: Writing Huge Data ( please wait)\n\n"
+        purint msg if current_size >= size_criterion
+      end
+
+        def self.prep_calc_po_size( fpath )
+          gp_po = GPhys::IO.open( fpath, 'p')
+          nxp   = gp_po.coord("xp"  ).val.length
+          nyp   = gp_po.coord("yp"  ).val.length
+          nz    = gp_po.coord("z"   ).val.length
+          ntime = gp_po.coord("time").val.length
+          return nxp*nyp*nz*ntime
+        end
 
   # 2015-09-11
   # argument : apts -- hash ( return of qg_p.get_axparts_k247() )
