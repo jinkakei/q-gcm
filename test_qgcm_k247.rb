@@ -79,18 +79,68 @@ class Test_K247_qgcm_prep < MiniTest::Unit::TestCase
     upd_time = K247_qgcm_data.prep_modify_po_time( axes_parts['time'] )
     assert_equal "days", upd_time['atts']['units']
   end
-  # pseudo test
-  def test_prep_read_monit_all
-    K247_qgcm_data.prep_read_monit_all( @dpath_dummy )
+
+  #def test_prep_read_monit_all
+  #  p K247_qgcm_data.prep_read_monit_all( @dpath_dummy )
+  #end
+#here
+  def test_prep_read_input_params
+    lines = K247_qgcm_data.prep_read_input_params( @dpath_dummy )
+    assert_equal 114, lines.length, "check when change input_parmeters.m"
+  end
+  def test_prep_params_del_comments
+    lines = K247_qgcm_data.prep_read_input_params( @dpath_dummy )
+    K247_qgcm_data.prep_params_del_comments( lines )
+    assert_equal 110, lines.length
+  end
+  def self.prep_params_get_nlo
+    lines = K247_qgcm_data.prep_read_input_params( @dpath_dummy )
+    assert_equal 2, K247_qgcm_data.prep_params_get_nlo( lines )
+      # fail when nlo is change
+  end
+
+  def test_prep_params_get_nodim
+    lines = K247_qgcm_data.prep_read_input_params( @dpath_dummy )
+    pno_hash = K247_qgcm_data.prep_params_get_nodim( lines )
+    #  p pno_hash
+    assert_equal 8, pno_hash["name"].length
+  end
+
+  def test_prep_params_get_z
+    lines = K247_qgcm_data.prep_read_input_params( @dpath_dummy )
+    pz_hash = K247_qgcm_data.prep_params_get_z( lines )
+    #  p pz_hash
+    assert_equal 5, pz_hash["name"].length
+  end
+  
+  def test_prep_params_conv_line_z
+    line = "ah4oc= [ah4oc   0.00000E+00]; %% Layers 2,n"
+    val = K247_qgcm_data.prep_params_conv_line_z( line )
+    assert_equal " 0.00000E+00", val
+  end
+
+  def test_prep_get_params
+    assert K247_qgcm_data.prep_get_params( @dpath_dummy )
   end
 #here
 =begin
-  def test_prep_modify_monit_grid
-    axes_parts = GPhys::IO.open( @monit_path, 'ddtpeoc' )
-    K247_qgcm_data.prep_modify_monit_grid( gp_monv )
-  end
-    #gp_po = GPhys::IO.open( @dpath_dummy + "ocpo.nc", 'p' )
 =end
+# not member of qgcm
+  def test_get_include
+    ary = ["ab", "acx", "ad"]
+    ret = ary.find do | item | item.include?("c") end
+    assert_equal "acx", ret
+  end
+  def test_ary_get_include_index_single
+    ary = ["ab", "acx", "ad"]
+    idx = ary_get_include_index( ary, "c" )
+    assert_equal 1, idx[0]
+  end
+  def test_ary_get_include_index_double
+    ary = ["ab", "acx", "ad", "ca"]
+    idx = ary_get_include_index( ary, "c" )
+    assert_equal [1,3], idx
+  end
 end # Test_K247_qgcm_prep
 
 =begin

@@ -309,9 +309,11 @@ def self.prep_unify_outdata( cname=nil )
   exit_with_msg("input case name") if cname==nil
   dpath     = self.prep_set_dpath_with_check( cname )
   out_nf    = self.prep_set_unified_fpath_with_check( cname )
-  gp_ocpo   = self.prep_get_updated_po( dpath )
+  # read & modify data
+    gp_ocpo     = self.prep_get_updated_po( dpath )
+    hash_monit  = self.prep_read_monit_all( dpath )
 #here
-  monit_gps = self.prep_read_monit_all( dpath )
+    hash_inpara = self.prep_get_params( dpath ) 
 =begin
     ocpo_nf = dpath + "ocpo.nc"
     monit_nf = dpath + "monit.nc"
@@ -355,6 +357,103 @@ def check_case( cname )
   exit_with_msg("input case name") if cname==nil
 end
 
+# here
+  def self.prep_get_params( dpath )
+    para_lines = self.prep_read_input_params( dpath )
+    self.prep_params_del_comments( para_lines )
+    # get nodim params
+    pno_hash = self.prep_params_get_nodim( para_lines )
+    #nlo = self.prep_params_get_nlo( para_lines )
+    pz_hash  = self.prep_params_get_z( para_lines )
+    # get z or zi params
+    # get abnormal params
+    return true
+  end
+#here: ToDo -- correct order of submethods of prep_get_params
+
+#here
+  #ToDo: unify prep_params_get_* ( add vname as argument )
+    def self.prep_params_get_z( lines )
+      vname = [ "ah2oc", "ah4oc", "tabsoc", "tocc", "hoc",  ]
+      #vname = [ "gpoc", "cphsoc", "rdefoc"] # zi
+      val = {}; com = {}
+      vname.each do |v|
+        idx = ary_get_include_index( lines, v )
+        kn = idx.length
+        if kn > 1
+          ary =[]
+          dummy, ary[0], com[v] = self.prep_params_conv_line(lines[idx[0]])
+          for k in 1..kn-1
+            ary[k] = self.prep_params_conv_line_z( lines[idx[k]] )
+          end
+          val[v] = ary
+        end
+      end
+      para = {}
+        para["name"]    = vname
+        para["val"]     = val
+        para["comment"] = com
+
+      return para
+    end
+
+    def self.prep_params_get_nodim( lines )
+      vname = [ "fnot", "beta", "dxo","dto", "rhooc", \
+              "cpoc", "l_spl", "c1_spl"]
+      val = {}; com = {}
+      vname.each do |v|
+        l_v = lines.find do |l|  l.include?(v) end
+        dummy, val[v], com[v] = self.prep_params_conv_line(l_v)
+      end
+      para = {}
+        para["name"]    = vname
+        para["val"]     = val
+        para["comment"] = com
+
+      return para
+    end
+
+    def self.prep_params_conv_line( line )
+      name, tmp1    = line.split("=")
+      val , tmp2    = tmp1.split(";")
+      left, comment = tmp2.split("%% ")
+      return name, val, comment
+    end
+
+    def self.prep_params_conv_line_z( line )
+      tmp1 , dummy    = line.split("];")
+      dummy, tmp2     = tmp1.split("= ")
+      dummy, val = tmp2.split("  ")
+      return val
+    end
+
+    def self.prep_params_get_nlo( lines )
+      i_nlo = 0
+      lines.each_with_index do | l,n |
+        i_nlo = n if l.include?("nlo")
+      end
+      name, nlo_str, comment = self.prep_params_conv_line( lines[i_nlo] )
+      return nlo_str.to_i
+    end
+
+    def self.prep_read_input_params( dpath )
+      lines = []
+      fu = File.open( dpath + "input_parameters.m",'r' )
+      while l = fu.gets
+        lines.push( l.chomp ) 
+      end
+      fu.close
+      return lines
+    end
+
+    def self.prep_params_del_comments( lines )
+      del_lines = [ "%%Matlab script to read in parameters", \
+                    "%%Derived parameters", \
+                    " ", "%%Parameters added by K247"]
+      del_lines.each do |d|
+        lines.delete( d  )
+      end
+    end
 
   def self.prep_set_dpath( cname )
     self.check_case(cname)
@@ -375,8 +474,9 @@ end
     current_fpaths = Dir::glob( dpath + "*" )
     ofpaths.each do | f |
       if current_fpaths.include?( f )
-        puts "  #{f} exist"
+        #puts "  #{f} exist"
       else
+        puts "  #{f} does not exist"
         return false 
       end
     end
@@ -488,7 +588,6 @@ end # def self.prep_set_filenames( cname )
       end
 
 
-# here
 def self.prep_read_monit_all( dpath )
   nf_name = dpath + "monit.nc"
   monit_vname_out = [ \
@@ -588,6 +687,7 @@ end # def self.prep_write_inpara( input )
   # argument: input -- hash ( filename )
   # return  : inp_hash{ "vname" => val}, inp_com = {"vname" => "comment"
   #                     etc.. (for prep_write_inpara) }
+#here
   def self.prep_read_inpara( input )
 
     print "\n\n\n  #{self}.prep_read_inpara \n"

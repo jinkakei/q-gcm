@@ -11,6 +11,13 @@ def exit_with_msg( msg )
   exit -1
 end
 
+def ary_get_include_index( ary, kwd )
+  idx = []
+  for i in 0..ary.length-1
+    idx.push( i ) if ary[i].include?( kwd )
+  end
+  return idx
+end
 
 # extension of gphys and varray
 #   ver. 2015-10-10: lib_k247/K247_basic.rb
