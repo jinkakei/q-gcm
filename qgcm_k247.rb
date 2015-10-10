@@ -503,7 +503,6 @@ def self.prep_read_monit_all( dpath )
   return monit_gp_out
 end
 
-#here 
   def self.prep_read_monit_var( nf_name, vname )
     gp_monv_org = GPhys::IO.open( nf_name, vname)
       new_grid     = self.prep_modify_monit_grid( gp_monv_org )
@@ -539,36 +538,6 @@ end
         axes_parts["zom"]["name"] = "zi" if axes_parts.has_key?('zom')
         ## adjust vertical axis name with ocpo.nc
       end
-
-# 2015-10-06: Too Long
-def self.prep_write_monit( input )
-  out_fu = input["out_fu"]
-  monit_nf = input[ "monit_fn" ]
-  monit_outv = [ 'ddtkeoc', 'ddtpeoc', 'emfroc', 'ermaso', \
-                 'et2moc', 'etamoc', 'kealoc', 'pkenoc']
-    mon_vzom = [ 'ddtpeoc', 'emfroc', 'ermaso', 'et2moc', 'etamoc']
-    mon_vzo  = [ 'ddtkeoc', 'kealoc']
-  
-  monit_outv.each do | vname |
-    gp_v = GPhys::IO.open( monit_nf, vname)
-      axes_parts = gp_v.get_axes_parts_k247
-      axes_parts["time"]["name"] = "time_monitor"
-          axes_parts["time"]["val"] *= 365.0
-          axes_parts["time"]["atts"]["units"] = "days"
-      axes_parts["zo"]["name"] = "z" if mon_vzo.include?( vname )
-      axes_parts["zom"]["name"] = "zi" if mon_vzom.include?( vname )
-        ## adjust vertical axis name with ocpo.nc
-      new_grid = gp_v.restore_grid_k247( axes_parts )
-      unless vname == "et2moc" # modify 2015-09-03
-        gp_v2 = GPhys.new( new_grid, gp_v.data)
-      else
-        gp_v2 = GPhys.new( new_grid, gp_v.chg_varray_k247( {"units"=>"m2"} ) )
-        puts "    !CAUTION! monit.nc@et2moc: change units to [W/m^2] -> [m2]"
-      end
-      GPhys::NetCDF_IO.write( out_fu, gp_v2 )
-  end # monit_outv.each do | vname |
-
-end # def self.prep_write_monit( input )
 
 
 # 2015-08-30
