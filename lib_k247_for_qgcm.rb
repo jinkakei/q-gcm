@@ -12,6 +12,128 @@ def exit_with_msg( msg )
 end
 
 
+# extension of gphys and varray
+#   ver. 2015-10-10: lib_k247/K247_basic.rb
+class NumRu::GPhys
+	
+	def get_attall_k247
+		self.data.get_attall_k247 # added method for VArray
+	end
+	
+	def get_filename_k247
+		self.data.get_filename_k247 # added method for VArrayNetCDF
+	end
+  
+  # ToDo: import change grid
+  def chg_gphys_k247( chg_hash )
+    return GPhys.new( self.grid, self.chg_varray_k247( chg_hash ) )
+  end
+
+	def chg_varray_k247( chg_hash )
+		self.data.chg_varray_k247( chg_hash ) # added method for VArray
+	end # def chg_varray_k247( chg_hash )
+		
+		def chg_data_k247( chg_hash )
+			self.chg_varray_k247( chg_hash )
+		end # def chg_data_k247( chg_hash )
+
+	
+	# ToDo: improve
+	#def get_axparts_k247
+	def get_axes_parts_k247
+		axis_names = self.axnames
+		axes_parts = { "names" => axis_names}
+			# need for restore ( hash doesnot have order )
+		axis_names.each{ | aname |
+			ax = self.coord( aname )
+			ax_parts = { "name"=> nil, "atts"=>nil, "val"=>nil}
+			  ax_parts["name"] = ax.name
+			  ax_parts["atts"] = ax.get_attall_k247
+			  ax_parts["val"] = ax.val
+			axes_parts[aname] = ax_parts
+		}
+		return axes_parts
+	end # get_axparts_k247
+	
+	# axes_parts: return of get_axparts_k247
+	def restore_grid_k247( axes_parts )
+		nax = axes_parts["names"].length
+		anames = axes_parts["names"]
+		ax = {}
+		for n in 0..nax-1
+			ax[n] = Axis.new.set_pos( VArray.new( axes_parts[anames[n]]["val"], axes_parts[anames[n]]["atts"], axes_parts[anames[n]]["name"] ) )
+		end
+		rgrid = Grid.new( ax[0] ) if nax == 1
+		rgrid = Grid.new( ax[0], ax[1] ) if nax == 2
+		rgrid = Grid.new( ax[0], ax[1], ax[2] ) if nax == 3
+		rgrid = Grid.new( ax[0], ax[1], ax[2], ax[3] ) if nax == 4
+
+		return rgrid
+	end # def K247_gphys_restore_grid( axes_parts )
+	
+	
+end # class NumRu::GPhys
+
+
+# VArray にメソッドを追加
+class NumRu::VArray
+
+	def get_attall_k247
+		att_names = self.att_names
+		if att_names == nil
+			puts "\n\n  no attribute \n\n"
+			return nil
+		end
+		att_all = {}
+		att_names.each do | aname |
+			att_all[ aname ] = self.get_att( aname )
+		end
+		return att_all
+	end
+
+	def chg_varray_k247( chg_hash )
+
+		unless chg_hash["name"] == nil
+			new_name = chg_hash[ "name" ]; chg_hash.delete( "name" )
+		else
+			new_name = self.name
+		end
+
+		unless chg_hash["val"] == nil
+			new_val = chg_hash[ "name" ]; chg_hash.delete( "val" )
+		else
+			new_val = self.val
+		end
+		
+		new_att =  self.get_attall_k247
+		chg_hash.keys.each do | k |
+			new_att[ k ] = chg_hash[ k ]
+		end
+
+		return VArray.new( new_val, new_att, new_name )
+	end # def chg_varray_k247( chg_hash )
+
+end # class NumRu::VArray
+	
+
+class NumRu::VArrayNetCDF
+
+	def get_filename_k247
+		info = self.inspect # ex. "<'p' in './q-gcm_29_24a_ocpo.nc'  sfloat[961, 961, 2, 3]>"
+		  #p info.class # String
+		return info.split( " in '" )[1].split( "'" )[0]
+	end
+	
+end # class NumRu::VArrayNetCDF
+
+# End: extension of gphys and varray
+
+
+
+
+
+
+
 # from ~/lib_k247/minitest_unit_k247.rb
 require "minitest/unit"
 # Add Colored Anounce@ 2015-10-03
