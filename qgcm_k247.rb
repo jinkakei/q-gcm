@@ -307,10 +307,11 @@ end # def init_etc
 # return  : none
 def self.prep_unify_outdata( cname=nil )
   exit_with_msg("input case name") if cname==nil
-  dpath = self.prep_set_dpath_with_check( cname )
-  out_nf = self.prep_set_unified_fpath_with_check( cname )
+  dpath     = self.prep_set_dpath_with_check( cname )
+  out_nf    = self.prep_set_unified_fpath_with_check( cname )
+  gp_ocpo   = self.prep_get_updated_po( dpath )
 #here
-  gp_ocpo = self.prep_get_updated_po( dpath )
+  monit_gps = self.prep_read_monit_all( dpath )
 =begin
     ocpo_nf = dpath + "ocpo.nc"
     monit_nf = dpath + "monit.nc"
@@ -321,7 +322,7 @@ def self.prep_unify_outdata( cname=nil )
     vnames = GPhys::IO.var_names( ocpo_nf )
     if (vnames.include?('p') == true) 
       gp_p = GPhys::IO.open( ocpo_nf, 'p')
-        apts = gp_p.get_axparts_k247()
+        apts = gp_p.get_axes_parts_k247()
         self.prep_modify_grid( apts )
         self.prep_check_size( apts ) # 2015-09-11 add
         pgrid_new = gp_p.restore_grid_k247( apts )
@@ -353,7 +354,6 @@ end
 def check_case( cname )
   exit_with_msg("input case name") if cname==nil
 end
-
 
 
   def self.prep_set_dpath( cname )
@@ -488,6 +488,57 @@ end # def self.prep_set_filenames( cname )
       end
 
 
+# here
+def self.prep_read_monit_all( dpath )
+  nf_name = dpath + "monit.nc"
+  monit_vname_out = [ \
+    'ddtkeoc', 'ddtpeoc', 'emfroc', 'ermaso', \
+    'et2moc' , 'etamoc' , 'kealoc', 'pkenoc']
+  monit_gp_out = {}
+
+  monit_vname_out.each do | v |
+    monit_gp_out[ v ] = self.prep_read_monit_var( nf_name, v)
+  end
+
+  return monit_gp_out
+end
+
+#here 
+  def self.prep_read_monit_var( nf_name, vname )
+    gp_monv_org = GPhys::IO.open( nf_name, vname)
+      new_grid     = self.prep_modify_monit_grid( gp_monv_org )
+      gp_monv_data = self.prep_modify_monit_data( gp_monv_org )
+    return GPhys.new( new_grid, gp_monv_data )
+  end
+
+    def self.prep_modify_monit_data( gp_monv_org )
+      if gp_monv_org.name == "et2moc"
+        return gp_monv_org.chg_varray_k247( {"units"=>"m2"} )
+      else
+        return gp_monv_org.data
+      end
+    end
+
+    def self.prep_modify_monit_grid( gp_monv )
+      origin   = gp_monv.get_axes_parts_k247
+      modified = origin.clone
+        modified["time"] = self.prep_modify_monit_time( origin["time"] )
+        self.prep_modify_monit_z( modified )
+      return gp_monv.restore_grid_k247( modified )
+    end
+
+      def self.prep_modify_monit_time( time_hash )
+        time_hash["name"]           = "time_monitor"
+        time_hash["val" ]          *= 365.0
+        time_hash["atts"]["units"]  = "days"
+        return time_hash
+      end
+
+      def self.prep_modify_monit_z( axes_parts )
+        axes_parts["zo" ]["name"] = "z"  if axes_parts.has_key?('zo')
+        axes_parts["zom"]["name"] = "zi" if axes_parts.has_key?('zom')
+        ## adjust vertical axis name with ocpo.nc
+      end
 
 # 2015-10-06: Too Long
 def self.prep_write_monit( input )
@@ -497,11 +548,10 @@ def self.prep_write_monit( input )
                  'et2moc', 'etamoc', 'kealoc', 'pkenoc']
     mon_vzom = [ 'ddtpeoc', 'emfroc', 'ermaso', 'et2moc', 'etamoc']
     mon_vzo  = [ 'ddtkeoc', 'kealoc']
-    mon_vz = mon_vzom + mon_vzo
   
   monit_outv.each do | vname |
     gp_v = GPhys::IO.open( monit_nf, vname)
-      axes_parts = gp_v.get_axparts_k247
+      axes_parts = gp_v.get_axes_parts_k247
       axes_parts["time"]["name"] = "time_monitor"
           axes_parts["time"]["val"] *= 365.0
           axes_parts["time"]["atts"]["units"] = "days"
