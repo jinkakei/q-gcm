@@ -425,16 +425,8 @@ end # def self.prep_set_filenames( cname )
     fpath = dpath + "ocpo.nc"
     self.prep_check_ocpo( fpath )
     gp_po = GPhys::IO.open( fpath, 'p')
-# here
-  # old name
-  #  new_grid = self.prep_modify_grid( apts )
-  # new name
-  #  new_grid = self.prep_modify_po_grid( gp_po )
-    # get grid
-    # modify grid
-    # restore gphys
-    gp_po_new = true # dummy
-    return gp_po_new
+    new_grid = self.prep_modify_po_grid( gp_po )
+    return GPhys.new( new_grid, gp_po.data)
   end
 
     def self.prep_check_ocpo( fpath )
@@ -449,9 +441,9 @@ end # def self.prep_set_filenames( cname )
         end
       end
 
-      def self.prep_ocpo_has_po?( fpath )
-        return GPhys::IO.var_names( fpath ).include?("p")
-      end
+        def self.prep_ocpo_has_po?( fpath )
+          return GPhys::IO.var_names( fpath ).include?("p")
+        end
       
       def self.prep_check_po_size( fpath )
         size_criterion = 960 * 960 * 2 * 36
@@ -469,19 +461,32 @@ end # def self.prep_set_filenames( cname )
           return nxp*nyp*nz*ntime
         end
 
-  # 2015-09-11
-  # argument : apts -- hash ( return of qg_p.get_axparts_k247() )
-  # action   : anounce alart
-  def self.prep_check_size( apts )
-    size_criterion = 960 * 960 * 2 * 36
-    nxp   = apts[  'xp']['val'].length
-    nyp   = apts[  'yp']['val'].length
-    nz    = apts[   'z']['val'].length
-    ntime = apts['time']['val'].length
-    current_size = nxp * nyp * nz * ntime
-    msg = "\n  INFO: Writing Huge Data ( please wait)\n"
-    puts msg if current_size >= size_criterion 
-  end
+    # argument: gp_po -- gphys object of ocpo.nc@p (*) 
+    #                    (*) q-gcm/src/outdata_*/ocpo.nc@p
+    def self.prep_modify_po_grid( gp_po )
+      origin = gp_po.get_axes_parts_k247
+      modified = origin.clone
+      puts "  ocpo.nc@p: replace X,Y Axis ( 0 at center)"
+      puts "  ocpo.nc@p: convert unit of TIME Axis to [days]"
+        modified['xp']   = self.prep_modify_po_xy( origin['xp'] )
+        modified['yp']   = self.prep_modify_po_xy( origin['yp'] )
+        modified['time'] = self.prep_modify_po_time( origin['time'] )
+      return gp_p.restore_grid_k247( modified )
+    end # def self.prep_modify_grid( apts )
+      
+      def self.prep_modify_po_xy( xy_hash )
+        n = xy_hash['val'].length
+        d = xy_hash['val'][1] - xy_hash['val'][0]
+        xy_hash['val'] -= d * ( n - 1 ).to_f / 2.0
+        return xy_hash
+      end
+    
+      def self.prep_modify_po_time( time_hash )
+        time_hash['val'] *= 365.0
+        time_hash['atts']['units'] = 'days'
+        return time_hash
+      end
+
 
 
 # 2015-10-06: Too Long
@@ -681,24 +686,6 @@ end # def self.prep_write_inpara( input )
     return inp_hash
   end # def self.prep_read_inpara( input )
 
-
-## tmp method 
-# argument: apts -- axes_parts ( hash, return of gphys_obj.get_axparts_k247 )
-def self.prep_modify_grid( apts )
-
-# version A.0.0.1 in k247_unify_qgcmout.rb @2015-08-29
-  puts "  ocpo.nc@p: replace X,Y Axis ( 0 at center)"
-    nxp = apts['xp']['val'].length
-    dx =  apts['xp']['val'][1] - apts['xp']['val'][0]
-    apts['xp']['val'] -= dx * ( nxp - 1 ).to_f / 2.0
-    nyp = apts['yp']['val'].length
-    dy =  apts['yp']['val'][1] - apts['yp']['val'][0]
-    apts['yp']['val'] -= dy * ( nyp - 1 ).to_f / 2.0
-  puts "  ocpo.nc@p: convert T Axis to [days]"
-    apts['time']['val'] *= 365.0
-    apts['time']['atts']['units'] = 'days'
-
-end # def self.prep_modify_grid( apts )
 
 def self.exist_class?
   return true

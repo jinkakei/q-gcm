@@ -23,6 +23,7 @@ class Test_K247_qgcm_prep < MiniTest::Unit::TestCase
   # Dir has some data
     # ToDo: must rename @ 2015-10-07
     @dpath_dummy = "./log/test_qgcm_k247/"
+      @ocpo_path = @dpath_dummy + "ocpo.nc"
   end
 
   def teardown
@@ -55,14 +56,28 @@ class Test_K247_qgcm_prep < MiniTest::Unit::TestCase
     refute K247_qgcm_data.prep_dpath_has_elements?( "./nil_path/" )
   end
 
-#here
   def test_prep_ocpo_has_po?
     assert K247_qgcm_data.prep_ocpo_has_po?( @dpath_dummy + "ocpo.nc" )
   end
+
   def test_prep_calc_po_size
     assert_equal 961*961*2*2, K247_qgcm_data.prep_calc_po_size( @dpath_dummy + "ocpo.nc" )
   end
+  
+  def test_prep_modify_po_xy
+    axes_parts = GPhys::IO.open( @ocpo_path, 'p' ).get_axes_parts_k247
+    upd_xy = K247_qgcm_data.prep_modify_po_xy( axes_parts['xp'] )
+    assert_equal 0, ( upd_xy['val'][0] + upd_xy['val'][-1])
+  end
+
+#here
+  def test_prep_modify_po_time
+    axes_parts = GPhys::IO.open( @ocpo_path, 'p' ).get_axes_parts_k247
+    upd_time = K247_qgcm_data.prep_modify_po_time( axes_parts['time'] )
+    assert_equal "days", upd_time['atts']['units']
+  end
 =begin
+    #gp_po = GPhys::IO.open( @dpath_dummy + "ocpo.nc", 'p' )
 =end
 end # Test_K247_qgcm_prep
 
