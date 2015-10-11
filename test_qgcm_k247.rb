@@ -83,7 +83,7 @@ class Test_K247_qgcm_prep < MiniTest::Unit::TestCase
   #def test_prep_read_monit_all
   #  p K247_qgcm_data.prep_read_monit_all( @dpath_dummy )
   #end
-#here
+
   def test_prep_read_input_params
     lines = K247_qgcm_data.prep_read_input_params( @dpath_dummy )
     assert_equal 114, lines.length, "check when change input_parmeters.m"
@@ -100,8 +100,8 @@ class Test_K247_qgcm_prep < MiniTest::Unit::TestCase
   end
 
   def test_prep_params_get_nodim
-    lines = K247_qgcm_data.prep_read_input_params( @dpath_dummy )
-    pno_hash = K247_qgcm_data.prep_params_get_nodim( lines )
+    lines    = K247_qgcm_data.prep_read_input_params( @dpath_dummy )
+    pno_hash = K247_qgcm_data.prep_params_get_nodim ( lines )
     #  p pno_hash
     assert_equal 8, pno_hash["name"].length
   end
@@ -112,6 +112,20 @@ class Test_K247_qgcm_prep < MiniTest::Unit::TestCase
     #  p pz_hash
     assert_equal 5, pz_hash["name"].length
   end
+
+  def test_prep_params_get_zi
+    lines    = K247_qgcm_data.prep_read_input_params( @dpath_dummy )
+    pzi_hash = K247_qgcm_data.prep_params_get_zi( lines )
+    #  p pzi_hash
+    assert_equal 3, pzi_hash["name"].length
+  end
+
+  def test_prep_params_get_wrap
+    lines    = K247_qgcm_data.prep_read_input_params( @dpath_dummy )
+    para_hash = K247_qgcm_data.prep_params_get_wrap( lines )
+    #  p para_hash
+    assert_equal 16, para_hash["name"].length
+  end
   
   def test_prep_params_conv_line_z
     line = "ah4oc= [ah4oc   0.00000E+00]; %% Layers 2,n"
@@ -120,9 +134,16 @@ class Test_K247_qgcm_prep < MiniTest::Unit::TestCase
   end
 
   def test_prep_get_params
-    assert K247_qgcm_data.prep_get_params( @dpath_dummy )
+    para_hash = K247_qgcm_data.prep_get_params( @dpath_dummy )
+    assert_equal 16, para_hash["name"].length
   end
 #here
+  def test_prep_write_para
+    out_fu = NetCDF.create( "./tmp_qgcm.nc")
+    p_hash = K247_qgcm_data.prep_get_params( @dpath_dummy )
+    K247_qgcm_data.prep_write_para_nodim( out_fu, p_hash )
+    out_fu.close
+  end
 =begin
 =end
 # not member of qgcm
