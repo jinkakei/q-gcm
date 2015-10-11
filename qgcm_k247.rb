@@ -361,21 +361,86 @@ end
   def self.prep_get_params( dpath )
     para_lines = self.prep_read_input_params( dpath )
     self.prep_params_del_comments( para_lines )
-    # get nodim params
-    pno_hash = self.prep_params_get_nodim( para_lines )
-    #nlo = self.prep_params_get_nlo( para_lines )
-    pz_hash  = self.prep_params_get_z( para_lines )
-    # get z or zi params
+  #  para_hash = self.prep_params_get_wrap( para_lines )
     # get abnormal params
     return true
   end
+
 #here: ToDo -- correct order of submethods of prep_get_params
 
 #here
   #ToDo: unify prep_params_get_* ( add vname as argument )
+    def self.prep_params_get_wrap( lines )
+      vname_no = self.prep_params_get_vname( "nodim" )
+      pno_hash = self.prep_params_get_tmp( lines, vname_no )
+      vname_z  = self.prep_params_get_vname( "z" )
+      pz_hash  = self.prep_params_get_tmp( lines, vname_z  )
+      vname_zi = self.prep_params_get_vname( "zi" )
+      pzi_hash = self.prep_params_get_tmp( lines, vname_zi )
+
+    end
+    def self.prep_params_get_tmp( lines, vname )
+      val = {}; com = {}
+      vname.each do |v|
+        idx = ary_get_include_index( lines, v )
+        kn = idx.length
+        if kn > 1
+          ary =[]
+          dummy, ary[0], com[v] = self.prep_params_conv_line(lines[idx[0]])
+          for k in 1..kn-1
+            ary[k] = self.prep_params_conv_line_z( lines[idx[k]] )
+          end
+          val[v] = ary
+        else
+          dummy, val[v], com[v] = self.prep_params_conv_line(lines[idx[0]])
+        end
+      end
+      para = {}
+        para["name"]    = vname
+        para["val"]     = val
+        para["comment"] = com
+
+      return para
+    end
+    def self.prep_params_get_vname( type )
+      return [ "gpoc", "cphsoc", "rdefoc"] if type == "zi"
+      return [ "fnot", "beta", "dxo","dto", "rhooc", \
+              "cpoc", "l_spl", "c1_spl"] if type == "nodim"
+      return [ "ah2oc", "ah4oc", "tabsoc", "tocc", "hoc" ] if type == "z"
+    end
+    def self.prep_params_get_zi( lines )
+      vname_zi = self.prep_params_get_vname( "zi" )
+      return self.prep_params_get_tmp( lines, vname_zi )
+=begin
+      vname = [ "gpoc", "cphsoc", "rdefoc"]
+      val = {}; com = {}
+      vname.each do |v|
+        idx = ary_get_include_index( lines, v )
+        kn = idx.length
+        if kn > 1
+          ary =[]
+          dummy, ary[0], com[v] = self.prep_params_conv_line(lines[idx[0]])
+          for k in 1..kn-1
+            ary[k] = self.prep_params_conv_line_z( lines[idx[k]] )
+          end
+          val[v] = ary
+        else
+          dummy, val[v], com[v] = self.prep_params_conv_line(lines[idx[0]])
+        end
+      end
+      para = {}
+        para["name"]    = vname
+        para["val"]     = val
+        para["comment"] = com
+
+      return para
+=end
+    end
     def self.prep_params_get_z( lines )
-      vname = [ "ah2oc", "ah4oc", "tabsoc", "tocc", "hoc",  ]
-      #vname = [ "gpoc", "cphsoc", "rdefoc"] # zi
+      vname_z  = self.prep_params_get_vname( "z" )
+      return self.prep_params_get_tmp( lines, vname_z  )
+=begin
+      vname = [ "ah2oc", "ah4oc", "tabsoc", "tocc", "hoc" ]
       val = {}; com = {}
       vname.each do |v|
         idx = ary_get_include_index( lines, v )
@@ -395,9 +460,13 @@ end
         para["comment"] = com
 
       return para
+=end
     end
 
     def self.prep_params_get_nodim( lines )
+      vname_no = self.prep_params_get_vname( "nodim" )
+      return self.prep_params_get_tmp( lines, vname_no )
+=begin
       vname = [ "fnot", "beta", "dxo","dto", "rhooc", \
               "cpoc", "l_spl", "c1_spl"]
       val = {}; com = {}
@@ -411,6 +480,7 @@ end
         para["comment"] = com
 
       return para
+=end
     end
 
     def self.prep_params_conv_line( line )
