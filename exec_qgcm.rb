@@ -1,6 +1,7 @@
 #!/usr/bin/ruby
 require '~/lib_k247/K247_basic'
-require '~/lib_k247/K247_qgcm'
+#require '~/lib_k247/K247_qgcm'
+require_relative 'lib_k247_for_qgcm'
 
 # How to use
 # $ exec_qgcm casename
@@ -70,8 +71,8 @@ watcher = K247_Main_Watch.new
     exec_command( "ln -s #{bes_dir+bes_o} .") unless File.exist?( bes_o )
     exec_command( "ln -s #{bes_dir+bes_m} .") unless File.exist?( bes_m )
   op_bes = bes_o
-  op_modon = "-Duse_modon"
-  #op_modon = "" # not modon mode
+  #op_modon = "-Duse_modon"
+  op_modon = "" # not modon mode
   exec_command( "ifort #{op_w} -o #{qres_e} #{qres_f} \
                   #{op_bes} #{op_ncdf} #{op_modon}" )
   pret = popen3_wrap( "./#{qres_e}" )

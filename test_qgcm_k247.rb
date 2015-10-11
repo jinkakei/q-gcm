@@ -88,11 +88,13 @@ class Test_K247_qgcm_prep < MiniTest::Unit::TestCase
     lines = K247_qgcm_data.prep_read_input_params( @dpath_dummy )
     assert_equal 114, lines.length, "check when change input_parmeters.m"
   end
+
   def test_prep_params_del_comments
     lines = K247_qgcm_data.prep_read_input_params( @dpath_dummy )
     K247_qgcm_data.prep_params_del_comments( lines )
     assert_equal 110, lines.length
   end
+
   def self.prep_params_get_nlo
     lines = K247_qgcm_data.prep_read_input_params( @dpath_dummy )
     assert_equal 2, K247_qgcm_data.prep_params_get_nlo( lines )

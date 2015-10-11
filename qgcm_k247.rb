@@ -306,6 +306,8 @@ end # def init_etc
 # action  : read outdata_YY/??? & write outdata_YY/qgcm_XX_YY_out.nc
 # return  : none
 def self.prep_unify_outdata( cname=nil )
+  puts "beginning of unite outdata files"
+
   exit_with_msg("input case name") if cname==nil
   dpath     = self.prep_set_dpath_with_check( cname )
   out_nf    = self.prep_set_unified_fpath_with_check( cname )
@@ -316,42 +318,95 @@ def self.prep_unify_outdata( cname=nil )
     GPhys::NetCDF_IO.write(       out_fu, gp_ocpo )
     self.prep_write_para(  dpath, out_fu, hash_para  )
     self.prep_write_monit(        out_fu, hash_monit )
+    self.prep_write_misc(         out_fu, cname  )
   out_fu.close
-=begin
-    ocpo_nf = dpath + "ocpo.nc"
-    monit_nf = dpath + "monit.nc"
-    inpara_nf = dpath + "input_parameters.m"
-  if ( File.exist?(ocpo_nf) ) && ( ! File.exist?(out_nf) ) then
-    puts "Create #{out_nf}"
-    out_fu = NetCDF.create( out_nf )
-    vnames = GPhys::IO.var_names( ocpo_nf )
-    if (vnames.include?('p') == true) 
-      gp_p = GPhys::IO.open( ocpo_nf, 'p')
-        apts = gp_p.get_axes_parts_k247()
-        self.prep_modify_grid( apts )
-        self.prep_check_size( apts ) # 2015-09-11 add
-        pgrid_new = gp_p.restore_grid_k247( apts )
-        gp_p2 = GPhys.new( pgrid_new, gp_p.data)
-         
-      # 2015-09-11: change for huge data
-        #GPhys::NetCDF_IO.write( out_fu, gp_p2 )
-        GPhys::NetCDF_IO.each_along_dims_write( gp_p2, out_fu, -1) \
-          do |sub| [sub] end
-    else
-      exit_with_msg("#{ocpo_nf} does not have p!")
-    end # if (vnames.include?('p') == true) 
-      self.prep_write_monit( { "out_fu"=>out_fu, "monit_fn"=>monit_nf } ) 
-      out_fu.put_att("original", ocpo_nf)
-      self.prep_write_inpara( { "out_fu"=>out_fu, "ocpo_fn"=>ocpo_nf, \
-                                "inpara_fn"=>inpara_nf} )
-    out_fu.close
-=end
+
   puts "end of unite outdata files"
   return true # temporary for test
 end # def self.prep_unify_outdata
 
 
 
+## prepare
+
+# Goal: reduce type
+#   ToDo: change place
+#   memo: error message should be displayed @ 2015-10-07
+def self.check_case( cname )
+  exit_with_msg("input case name") if cname==nil
+end
+def check_case( cname )
+  exit_with_msg("input case name") if cname==nil
+end
+
+
+  def self.prep_set_dpath( cname )
+    self.check_case(cname)
+    return "./outdata_#{cname}/"
+  end
+
+  def self.prep_set_dpath_with_check( cname )
+     dpath = self.prep_set_dpath( cname )
+     if self.prep_dpath_has_elements?( dpath )
+       return dpath
+     else
+       exit_with_msg( "#{dpath} lack element files")
+     end
+  end
+
+  def self.prep_dpath_has_elements?( dpath )
+    ofpaths = self.prep_set_original_fpaths( dpath )
+    current_fpaths = Dir::glob( dpath + "*" )
+    ofpaths.each do | f |
+      if current_fpaths.include?( f )
+        #puts "  #{f} exist"
+      else
+        puts "  #{f} does not exist"
+        return false 
+      end
+    end
+    return true
+  end
+    
+  def self.prep_set_original_fpaths( dpath )
+    fnames = ["ocpo.nc", "monit.nc", "input_parameters.m"]
+    fpaths = []
+    fnames.each do | fn |
+      fpaths.push( dpath + fn )
+    end
+    return fpaths
+  end
+
+
+def self.prep_set_unified_fpath_with_check( cname )
+  fpath = self.prep_set_unified_fpath( cname )
+  if File.exist?( fpath )
+    exit_with_msg( "outfile: #{fpath} is already exist")
+  else
+    return fpath
+  end
+end
+
+def self.prep_set_unified_fpath( cname )
+  dpath = self.prep_set_dpath( cname )
+  gcname = self.prep_set_greater_cname
+  return "#{dpath}q-gcm_#{gcname}_#{cname}_out.nc"
+end
+
+  def self.prep_set_greater_cname( arg=nil)
+  # ver. 2015-10-06: use ./Goal__*__.txt
+    goal_file = Dir::glob("./Goal__*__.txt")
+    if goal_file.length > 1
+      p goal_file
+      exit_with_msg("Test Goal must be one and only")
+    end
+    exit_with_msg("Goal__*__.txt is not exist") if goal_file[0] == nil
+    return goal_file[0].split("__")[1]
+  end
+
+
+
+## write monit
 def self.prep_write_monit( out_fu, hash_monit )
   hash_monit.each_value do |item|
     GPhys::NetCDF_IO.write( out_fu, item )
@@ -360,14 +415,22 @@ def self.prep_write_monit( out_fu, hash_monit )
 end
 
 
+# write misc
+def self.prep_write_misc( out_fu, cname )
+  gcname = self.prep_set_greater_cname
+  out_fu.put_att( "cname" ,  cname )
+  out_fu.put_att( "gcname", gcname )
+end
 
+
+
+# write parameters
 def self.prep_write_para( dpath, out_fu, hash_para )
   self.prep_write_para_nodim(     out_fu, hash_para )
   self.prep_write_para_z(  dpath, out_fu, hash_para )
   self.prep_write_para_zi( dpath, out_fu, hash_para )
   return true # temporary
 end
-
 
   def self.prep_write_para_zi( dpath, out_fu, p_hash )
     vname      = self.prep_params_get_vname( "zi" )
@@ -440,84 +503,8 @@ end
   end
 
 
-# Goal: reduce type
-#   ToDo: change place
-#   memo: error message should be displayed @ 2015-10-07
-def self.check_case( cname )
-  exit_with_msg("input case name") if cname==nil
-end
-def check_case( cname )
-  exit_with_msg("input case name") if cname==nil
-end
 
-
-  def self.prep_set_dpath( cname )
-    self.check_case(cname)
-    return "./outdata_#{cname}/"
-  end
-
-  def self.prep_set_dpath_with_check( cname )
-     dpath = self.prep_set_dpath( cname )
-     if self.prep_dpath_has_elements?( dpath )
-       return dpath
-     else
-       exit_with_msg( "#{dpath} lack element files")
-     end
-  end
-
-  def self.prep_dpath_has_elements?( dpath )
-    ofpaths = self.prep_set_original_fpaths( dpath )
-    current_fpaths = Dir::glob( dpath + "*" )
-    ofpaths.each do | f |
-      if current_fpaths.include?( f )
-        #puts "  #{f} exist"
-      else
-        puts "  #{f} does not exist"
-        return false 
-      end
-    end
-    return true
-  end
-    
-  def self.prep_set_original_fpaths( dpath )
-    fnames = ["ocpo.nc", "monit.nc", "input_parameters.m"]
-    fpaths = []
-    fnames.each do | fn |
-      fpaths.push( dpath + fn )
-    end
-    return fpaths
-  end
-
-
-def self.prep_set_unified_fpath_with_check( cname )
-  fpath = self.prep_set_unified_fpath( cname )
-  if File.exist?( fpath )
-    exit_with_msg( "outfile: #{fpath} is already exist")
-  else
-    return fpath
-  end
-end
-
-def self.prep_set_unified_fpath( cname )
-  dpath = self.prep_set_dpath( cname )
-  gcname = self.prep_set_greater_cname
-  return "#{dpath}q-gcm_#{gcname}_#{cname}_out.nc"
-end # def self.prep_set_filenames( cname )
-
-  def self.prep_set_greater_cname( arg=nil)
-  # ver. 2015-10-06: use ./Goal__*__.txt
-    goal_file = Dir::glob("./Goal__*__.txt")
-    if goal_file.length > 1
-      p goal_file
-      exit_with_msg("Test Goal must be one and only")
-    end
-    exit_with_msg("Goal__*__.txt is not exist") if goal_file[0] == nil
-    return goal_file[0].split("__")[1]
-  end
-
-
-
-# read & modify ocpo.nc
+## read & modify ocpo.nc
   def self.prep_get_updated_po( dpath )
     fpath = dpath + "ocpo.nc"
     self.prep_check_ocpo( fpath )
@@ -546,7 +533,7 @@ end # def self.prep_set_filenames( cname )
         size_criterion = 960 * 960 * 2 * 36
         current_size = self.prep_calc_po_size( fpath )
         msg = "\n\n  INFO: Writing Huge Data ( please wait)\n\n"
-        purint msg if current_size >= size_criterion
+        print msg if current_size >= size_criterion
       end
 
         def self.prep_calc_po_size( fpath )
@@ -568,7 +555,7 @@ end # def self.prep_set_filenames( cname )
         modified['xp']   = self.prep_modify_po_xy( origin['xp'] )
         modified['yp']   = self.prep_modify_po_xy( origin['yp'] )
         modified['time'] = self.prep_modify_po_time( origin['time'] )
-      return gp_p.restore_grid_k247( modified )
+      return gp_po.restore_grid_k247( modified )
     end # def self.prep_modify_grid( apts )
       
       def self.prep_modify_po_xy( xy_hash )
@@ -586,7 +573,7 @@ end # def self.prep_set_filenames( cname )
 
 
 
-# read & modify monit.nc
+## read & modify monit.nc
 def self.prep_read_monit_all( dpath )
   nf_name = dpath + "monit.nc"
   monit_gp_out = {}
@@ -639,7 +626,7 @@ end
 
 
 
-# read & modify input_parameters.m
+## read & modify input_parameters.m
   def self.prep_get_params( dpath )
     para_lines = self.prep_read_input_params( dpath )
     self.prep_params_del_comments( para_lines )
@@ -648,8 +635,8 @@ end
 
     def self.prep_params_get_wrap( lines )
       pno = self.prep_params_get_nodim( lines )
-      pz  = self.prep_params_get_z    ( lines )
-      pzi = self.prep_params_get_zi   ( lines )
+      pz  = self.prep_params_get_z(     lines )
+      pzi = self.prep_params_get_zi(    lines )
       return self.prep_params_merge_hash( pno, pz, pzi )
     end
 
