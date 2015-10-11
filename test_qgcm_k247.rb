@@ -137,12 +137,21 @@ class Test_K247_qgcm_prep < MiniTest::Unit::TestCase
     para_hash = K247_qgcm_data.prep_get_params( @dpath_dummy )
     assert_equal 16, para_hash["name"].length
   end
-#here
+
   def test_prep_write_para
-    out_fu = NetCDF.create( "./tmp_qgcm.nc")
+    out_fu = NetCDF.create( @dpath_dummy + "qgcm_para.nc" )
     p_hash = K247_qgcm_data.prep_get_params( @dpath_dummy )
-    K247_qgcm_data.prep_write_para_nodim( out_fu, p_hash )
+    ret    = K247_qgcm_data.prep_write_para( @dpath_dummy, out_fu, p_hash )
     out_fu.close
+    assert ret
+  end
+
+  def test_prep_write_monit
+    out_fu = NetCDF.create( @dpath_dummy + "qgcm_monit.nc" )
+    m_hash = K247_qgcm_data.prep_read_monit_all( @dpath_dummy )
+    ret    = K247_qgcm_data.prep_write_monit( out_fu, m_hash )
+    out_fu.close
+    assert ret
   end
 =begin
 =end

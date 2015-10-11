@@ -312,9 +312,10 @@ def self.prep_unify_outdata( cname=nil )
     gp_ocpo    = self.prep_get_updated_po( dpath )
     hash_monit = self.prep_read_monit_all( dpath )
     hash_para  = self.prep_get_params( dpath ) 
-#here
   out_fu = NetCDF.create( out_nf )
-    self.prep_write_para( dpath, out_fu, hash_para )
+    GPhys::NetCDF_IO.write(       out_fu, gp_ocpo )
+    self.prep_write_para(  dpath, out_fu, hash_para  )
+    self.prep_write_monit(        out_fu, hash_monit )
   out_fu.close
 =begin
     ocpo_nf = dpath + "ocpo.nc"
@@ -350,40 +351,93 @@ def self.prep_unify_outdata( cname=nil )
 end # def self.prep_unify_outdata
 
 
-  
-  def self.prep_write_para( dpath, out_fu, hash_para )
-    self.prep_write_para_nodim( out_fu, hash_para )
+
+def self.prep_write_monit( out_fu, hash_monit )
+  hash_monit.each_value do |item|
+    GPhys::NetCDF_IO.write( out_fu, item )
   end
-# here
-    def self.prep_write_para_nodim( out_fu, p_hash )
-      vname_no = self.prep_params_get_vname( "nodim" )
-      unit = self.prep_params_get_units( "nodim" )
-      val = p_hash["val"]
-      comment = p_hash["comment"]
-      vname_no.each do |vn|
-      #  puts( "  #{vn}:#{val[vn]}:#{unit[vn]}:#{comment[vn]}")
-        out_fu.put_att( vn, "#{val[vn]}:#{unit[vn]}:#{comment[vn]}")
+  return true
+end
+
+
+
+def self.prep_write_para( dpath, out_fu, hash_para )
+  self.prep_write_para_nodim(     out_fu, hash_para )
+  self.prep_write_para_z(  dpath, out_fu, hash_para )
+  self.prep_write_para_zi( dpath, out_fu, hash_para )
+  return true # temporary
+end
+
+
+  def self.prep_write_para_zi( dpath, out_fu, p_hash )
+    vname      = self.prep_params_get_vname( "zi" )
+    unit       = self.prep_params_get_units( "zi" )
+    grid       = GPhys::IO.open( dpath + "ocpo.nc", 'zi').grid_copy
+    val        = p_hash["val"]
+    comment    = p_hash["comment"]
+    vname.each do |vn|
+      attr_tmp = {"units"=>unit[vn], "long_name"=>comment[vn]}
+      nary     = self.prep_conv_ary_str_to_nary( val[vn] )
+      gp_tmp   = GPhys.new( grid, VArray.new( nary, attr_tmp, vn) )
+      GPhys::NetCDF_IO.write( out_fu, gp_tmp )
+    end
+  end
+
+  def self.prep_write_para_z( dpath, out_fu, p_hash )
+    vname      = self.prep_params_get_vname( "z" )
+    unit       = self.prep_params_get_units( "z" )
+    val        = p_hash["val"]
+    comment    = p_hash["comment"]
+    grid       = GPhys::IO.open( dpath + "ocpo.nc", 'z').grid_copy
+    vname.each do |vn|
+      attr_tmp = {"units"=>unit[vn], "long_name"=>comment[vn]}
+      nary     = self.prep_conv_ary_str_to_nary( val[vn] )
+      gp_tmp   = GPhys.new( grid, VArray.new( nary, attr_tmp, vn) )
+      GPhys::NetCDF_IO.write( out_fu, gp_tmp )
+    end
+  end
+
+    def self.prep_conv_ary_str_to_nary( ary )
+    #  if ary.class == "Array"
+      if ary.class == Array
+        n = ary.length
+        nary = NArray.sfloat( n )
+        ary.each_with_index do |item, n|
+          nary[n] = item.to_f
+        end
+      else
+        nary    = NArray.sfloat(1)
+        nary[0] = ary.to_f
       end
+      return nary
     end
 
-    def self.prep_params_get_units( type )
-      case type
-      when "nodim"
-        return { "fnot"=>"s-1", "beta"=>"s-1.m-1", \
-                 "dxo"=>"m", "dto"=>"s", \
-                 "rhooc"=>"kg.m-3", "cpoc"=>"J.kg-1.K-1", \
-                 "l_spl"=>"m", "c1_spl"=>" "}
-      when "z"
-        return { "tabsoc"=>"K", "tocc"=>"degC", "hoc"=>"m", \
-                 "ah2oc"=>"m2.s-1", "ah4oc"=>"m4.s-1"}
-      when "zi"
-        return {"cphsoc"=>"cm.s-1", "gpoc"=>"m.s-2", "rdefoc"=>"m"}
-      else
-        puts "!ERROR! prep_params_get_units: wrong argument!" 
-      end
+  def self.prep_write_para_nodim( out_fu, p_hash )
+    vname_no = self.prep_params_get_vname( "nodim" )
+    unit = self.prep_params_get_units( "nodim" )
+    val = p_hash["val"]
+    comment = p_hash["comment"]
+    vname_no.each do |vn|
+      out_fu.put_att( vn, "#{val[vn]}:#{unit[vn]}:#{comment[vn]}")
     end
-#      vname_zi = self.prep_params_get_vname( "zi" )
-#      vname_z  = self.prep_params_get_vname( "z" )
+  end
+
+  def self.prep_params_get_units( type )
+    case type
+    when "nodim"
+      return { "fnot"=>"s-1", "beta"=>"s-1.m-1", \
+               "dxo"=>"m", "dto"=>"s", \
+               "rhooc"=>"kg.m-3", "cpoc"=>"J.kg-1.K-1", \
+               "l_spl"=>"m", "c1_spl"=>" "}
+    when "z"
+      return { "tabsoc"=>"K", "tocc"=>"degC", "hoc"=>"m", \
+               "ah2oc"=>"m2.s-1", "ah4oc"=>"m4.s-1"}
+    when "zi"
+      return {"cphsoc"=>"cm.s-1", "gpoc"=>"m.s-2", "rdefoc"=>"m"}
+    else
+      puts "!ERROR! prep_params_get_units: wrong argument!" 
+    end
+  end
 
 
 # Goal: reduce type
@@ -535,17 +589,17 @@ end # def self.prep_set_filenames( cname )
 # read & modify monit.nc
 def self.prep_read_monit_all( dpath )
   nf_name = dpath + "monit.nc"
-  monit_vname_out = [ \
-    'ddtkeoc', 'ddtpeoc', 'emfroc', 'ermaso', \
-    'et2moc' , 'etamoc' , 'kealoc', 'pkenoc']
   monit_gp_out = {}
-
-  monit_vname_out.each do | v |
+  (self.prep_monit_get_vname).each do | v |
     monit_gp_out[ v ] = self.prep_read_monit_var( nf_name, v)
   end
-
   return monit_gp_out
 end
+
+  def self.prep_monit_get_vname
+    return ['ddtkeoc', 'ddtpeoc', 'emfroc', 'ermaso', \
+            'et2moc' , 'etamoc' , 'kealoc', 'pkenoc']
+  end
 
   def self.prep_read_monit_var( nf_name, vname )
     gp_monv_org = GPhys::IO.open( nf_name, vname)
@@ -630,7 +684,7 @@ end
         para["comment"] = com
       return para
     end
-
+      
     def self.prep_params_get_vname( type )
       return [ "gpoc", "cphsoc", "rdefoc"] if type == "zi"
       return [ "fnot", "beta", "dxo","dto", "rhooc", \
@@ -695,171 +749,6 @@ end
       end
     end
 
-
-# 2015-08-30
-# ToDo
-#   - too long!
-#
-#   wrapper of K247_qgcm_read_inpara
-#   arguments: out_fu:    outfile unit
-#              inpara_fn: filename of input paramters
-#              ocpo_fn:   filename of ocpo
-def self.prep_write_inpara( input )
-  out_fu = input["out_fu"]
-  inpara_fn = input["inpara_fn"]
-  i_hash = self.prep_read_inpara( { "inp_fn"=>inpara_fn} )
-    i_val = i_hash["val"]; i_com = i_hash["comment"]
-    i_okeyno = i_hash["out_keyno"]; i_okeyzi = i_hash["out_keyzi"]
-    i_okeyz  = i_hash["out_keyz"]
-    i_okey   = i_okeyno[0..-1] + i_okeyzi[0..-1] + i_okeyz[0..-1]
-    i_ounit = i_hash["out_units"]
-  
-  ocpo_fn = input["ocpo_fn"] 
-  grid_z = GPhys::IO.open( ocpo_fn, 'z').grid_copy
-  grid_zi = GPhys::IO.open( ocpo_fn, 'zi').grid_copy
-  
-  i_okey.each do | oky |
-    if i_okeyz.include?(oky) || i_okeyzi.include?(oky)
-      attr_tmp = {"units"=>i_ounit[oky], "long_name"=>i_com[oky]}
-      gp_tmp = GPhys.new( grid_zi, VArray.new( i_val[oky], attr_tmp, oky ) ) if i_okeyzi.include?(oky)
-      gp_tmp = GPhys.new( grid_z, VArray.new( i_val[oky], attr_tmp, oky ) ) if i_okeyz.include?(oky)
-      GPhys::NetCDF_IO.write( out_fu, gp_tmp )
-    else
-      out_fu.put_att(oky, i_val[oky].to_s  + ":" \
-                    + i_ounit[oky] + ":" + i_com[oky] )
-    end # if i_okeyz.include?(oky) || i_okeyzi.include?(oky)
-  end # i_okey.each do | oky |
-  
-end # def self.prep_write_inpara( input )
-
-
-  # Convert English for KUDPC
-  # 2015-07-25 -- Create
-  #   read input_parameters.m for unify qgcm outdata
-  # 2015-08-24 -- edit
-  #  Comment: layered parameters are difficult to read.
-  #
-  # ToDo: sophisticate (too long, over 100 lines)
-  #
-  # argument: input -- hash ( filename )
-  # return  : inp_hash{ "vname" => val}, inp_com = {"vname" => "comment"
-  #                     etc.. (for prep_write_inpara) }
-#here
-  def self.prep_read_inpara( input )
-
-    print "\n\n\n  #{self}.prep_read_inpara \n"
-    print "  !!WARNING!! too long and complicate to improve!!\n\n\n"
-    
-    inp_fn = input[ "inp_fn" ]
-    inp_fu = open( inp_fn, "r")
-      lnum = 0; inp_txt = Array.new; inp_txt2 = Array.new
-      cini = 0; clen = 1 
-      while line = inp_fu.gets
-        if ( line[cini,clen] =~ /[a-z]/) # first 1 character is alphabet
-          inp_txt[lnum],tmp = line.split(";")
-          tmp2, inp_txt2[lnum] = tmp.split("%% ")
-          lnum += 1
-        end
-      end
-    inp_fu.close
-
-    inp_val = { "readme"=> "This hash is values of input_parameters.m"}
-    inp_com = { "readme"=> "This hash is comments of input_parameters.m"}
-      flag_bgn = 1; flag_end = 7
-      for n in flag_bgn..flag_end
-        vname, val = inp_txt[n].split(" =")
-        inp_val.store( vname, val.to_i )
-        inp_com.store( vname, inp_txt2[n].chomp )
-      end
-      para_bgn = 8
-        vname_z = [ "zopt", "gpoc", "ah2oc", "ah4oc", "tabsoc", \
-              "tocc", "hoc", "gpat", "ah4at", "tabsat", \
-              "tat", "hat", "cphsoc", "rdefoc", "cphsat", \
-              "rdefat", "aface"]
-          flg_z = { "tmp"=>0}
-        vname_nlo = [ "ah2oc", "ah4oc", "tabsoc", "tocc", "hoc",  ]
-          flg_nlo = { "tmp"=>0}
-        vname_nlo0 = [ "gpoc", "cphsoc", "rdefoc"]
-          flg_nlo0 = { "tmp"=>0}
-        vname_nla = [ "zopt", "ah4at", "tabsat", "tat", "hat" ]
-          flg_nla = { "tmp"=>0}
-        vname_nla0 = [ "gpat", "cphsat", "rdefat", "aface" ]
-          flg_nla0 = { "tmp"=>0}
-      for n in para_bgn..lnum-1
-        vname, val = inp_txt[n].split("=")
-        case vname
-        when "%%Derived parameters\n"
-          # 
-        when "name"
-          inp_val.store( vname, val )
-          inp_com.store( vname, inp_txt2[n].chomp )
-        when "outfloc", "outflat" # p val # ex. " [ 1 1 1 1 1 1 1]"
-          tmp, tar = val.split( "[ "); tar2, tmp = tar.split("]")
-          tval_arr = tar2.split(" ") # p tval_arr # ex. ["1", "1", "0", "1", "0", "0", "0"]
-          val_arr = NArray.int( tval_arr.size )
-          for n2 in 0..val_arr.size-1
-            val_arr[n2] = tval_arr[n2].to_i
-          end
-          inp_com.store( vname, inp_txt2[n].chomp )
-          inp_val.store( vname, val_arr )
-        when *vname_z
-          if flg_z[vname] == nil then
-            case vname
-            when *vname_nlo
-              nl = inp_val["nlo"].to_i
-            when *vname_nlo0
-              nl = inp_val["nlo"].to_i - 1
-            when *vname_nla
-              nl = inp_val["nla"].to_i
-            when *vname_nla0
-              nl = inp_val["nla"].to_i - 1
-            else
-              print "\n\n !WARNING! \n\n"
-            end
-            nl_arr = NArray.sfloat( nl )
-            for n2 in 0..nl-1
-              if n2 > 0 then
-              # ex. zopt= [zopt   2.00000E+04]
-              tmp,val0 = inp_txt[n+n2].split("["+vname)
-              val,tmp2 = val0.split("]")
-              end
-              nl_arr[n2] = val.to_f
-            end
-            inp_val.store( vname, nl_arr )
-            inp_com.store( vname, inp_txt2[n].chomp )
-            flg_z.store( vname, 1)
-          end
-        else
-          if ( inp_txt2[n] != nil) 
-            inp_val.store( vname, val.to_f )
-            inp_com.store( vname, inp_txt2[n].chomp )
-          end
-        end
-      end
-    
-  # set output paramters (ver. 0.0.1 @2015-08-30)
-    inp_okeyno = [ "fnot", "beta", "dxo","dto", "rhooc", \
-                   "cpoc", "l_spl", "c1_spl"]
-    inp_okeyzi = [ "gpoc", "cphsoc", "rdefoc"]
-    inp_okeyz  = [ "ah2oc", "ah4oc", "tabsoc", "hoc"]
-    inp_okey = inp_okeyno[0..-1] + inp_okeyzi[0..-1] + inp_okeyz[0..-1]
-    inp_ounit = { "fnot"=>"s-1", "beta"=>"s-1.m-1", "dxo"=>"m", "dto"=>"s", \
-                  "rhooc"=>"kg.m-3", "cpoc"=>"J.kg-1.K-1", "l_spl"=>"m", \
-                  "c1_spl"=>" ", "gpoc"=>"m.s-2", "cphsoc"=>"cm.s-1", \
-                  "rdefoc"=>"m", "tabsoc"=>"K", "hoc"=>"m", \
-                  "ah2oc"=>"m2.s-1", "ah4oc"=>"m4.s-1"}
-    inp_okey.each do | ky |
-      inp_com[ky].sub!( /layer 1/, "layer n" )
-      inp_com[ky].sub!( /mode 1/, "mode n" )
-    end
-
-    inp_hash = {"val"=>inp_val, "comment"=>inp_com, \
-                "out_units"=>inp_ounit, \
-                "out_keyno"=>inp_okeyno, "out_keyz"=>inp_okeyz, \
-                "out_keyzi"=>inp_okeyzi, 
-                }
-    return inp_hash
-  end # def self.prep_read_inpara( input )
 
 
 def self.exist_class?
