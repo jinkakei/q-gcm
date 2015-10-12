@@ -19,6 +19,20 @@ def ary_get_include_index( ary, kwd )
   return idx
 end
 
+##  NArray operator
+# ToDo
+#   - treat dimension other than 2D
+def na_max_with_index_k247( na )
+  max_val = na.max
+  ij= na.eq( max_val ).where 
+  ni = na.shape[0]
+  max_i = ij[0] % ni; max_j = ij[0] / ni
+  #  puts "test: #{na[ max_i, max_j ] } "
+  return max_val, max_i, max_j
+end
+##  END: NArray operator
+
+
 
 class K247_Main_Watch
   # access
@@ -159,6 +173,7 @@ class NumRu::VArrayNetCDF
 end # class NumRu::VArrayNetCDF
 
 # End: extension of gphys and varray
+
 
 
 

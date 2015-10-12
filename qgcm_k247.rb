@@ -21,6 +21,7 @@ class K247_qgcm_data
   attr_reader :fnot, :beta, :dxo, :dto, :rhooc, :cpoc, \
               :l_spl, :c1_spl
   attr_reader :gpoc, :cphsoc, :rdefoc, :ah2oc, :ah4oc, :tabsoc, :hoc
+  attr_reader :grav, :m_to_cm
   # from init_etc
   attr_reader :gcname, :cname, :dname
 
@@ -56,9 +57,30 @@ end # initialize
   end
 
 # methods index
+## - instance methods for ssh decay
 ## - instance methods for check 
 ## - instance methods for initialzie
 ## - class methods for preparation ( unify outdata_*/* )
+
+
+## - instance methods for ssh decay
+def sshdec_tmp
+  @ssh = @p.cut( "z" => @z[0] ) * @m_to_cm / @grav
+  hmax   = NArray.sfloat( @nt )
+    imax = NArray.sfloat( @nt )
+    jmax = NArray.sfloat( @nt )
+  for tn in 0..@nt-1
+    hmax[tn], imax[tn], jmax[tn] = \
+      na_max_with_index_k247( @ssh.cut( "time" => @t[tn]).val )
+    #puts hmax[tn] #, imax[tn], jmax[tn]
+  end
+  grid_t = Grid.new( Axis.new.set_pos( @tcor ) )
+  nc_fu = NetCDF.create( "./test20151012.nc" )
+    va_h = VArray.new( hmax, {"units"=>"cm", "long_name"=>"ssh_max"}, "hmax")
+    gp_h = GPhys.new( grid_t, va_h )
+    GPhys::NetCDF_IO.write( nc_fu, gp_h )
+  nc_fu.close
+end
 
 
 
@@ -70,11 +92,11 @@ end # initialize
   # Check Area averaged energy
   # ToDo
   #   - zonally & meridionally averaged energies ( add new method? )
-  #   - for 2 layer only @ 2015-10-12
+  #   - update for 3 or more layer @ 2015-10-12
   def chk_energy_avg_stdout( input=nil )
     puts "Check Area averaged energy (from monit.nc)"
     puts "  case: #{@gcname}-#{@cname}"
-    puts "  te: toal, pe: potential, ke: kinetic energy"
+    puts "  te: toal, pe: potential, ke: kinetic energy"; puts
     ke = @keocavg
     pe = @peocavg
     te = @teocavg
@@ -105,6 +127,7 @@ end # initialize
   #   - create zonally & meridionally averaged energies
   #     ( another method)
   #   - refactoring ( abstract method )
+  #   - update for 3 or more layer @ 2015-10-12
   def chk_energy_avg_ncout( input=nil)
     out_fname = "#{@dname}energy_check.nc" 
     puts "Output area averaged energy to #{out_fname}"
@@ -172,16 +195,15 @@ end
     return self.class.prep_set_unified_fpath( cname )
   end
 
+
+
+
 def init_set_var
   @p = GPhys::IO.open( @nc_fn, "p" )
   @q = nil # set by calc_q
 end
 
-# Create: 2015-09-01
-## ToDo
-#    - select variables
-#    - refactoring: kill duplication
-#    - refactoring: [calc pe & set warnig] -> move to prep
+
 def init_monit
   self.class.prep_monit_get_vname.each do | vn |
     instance_variable_set( \
@@ -194,11 +216,22 @@ def init_monit
 end # def init_monit( @nc_fn )
 
 
-
 def init_params
   init_params_zdim
   init_params_nodim
+  init_params_etc
 end
+
+  def init_params_etc
+    nary = NArray.sfloat( 1 )
+    
+    nary[0] = 9.8
+    @grav = VArray.new( nary.clone, { "units" => "m.s-2" }, "grav" )
+
+    nary[0] = 100.0
+    @m_to_cm = VArray.new( nary.clone, { "units" => "m-1.cm" }, "m_to_cm" )
+
+  end
 
   def init_params_zdim
     [ "z", "zi" ].each do | dim |
@@ -227,7 +260,6 @@ end
     end
 
 
-# 2015-09-04
 def init_etc
   init_coord
   init_teocavg
@@ -236,9 +268,8 @@ end # def init_etc
 
   # ToDo
   #   - refactoring: kill dupliction
+  #       instance_variable_set("@#{aname}", va_tmp)
   def init_coord
-    # for refactoring
-      #instance_variable_set("@#{aname}", va_tmp)
     @xpcor = @p.coord("xp"); @xp = @xpcor.val; @nxp = @xp.length
     @ypcor = @p.coord("yp"); @yp = @ypcor.val; @nyp = @yp.length
     @zcor = @p.coord("z"); @z = @zcor.val; @nz = @z.length
@@ -256,11 +287,11 @@ end # def init_etc
     for k in 1..@nz-1
       total_ke = total_ke + @keocavg.cut( "z"=>@z[k])
     end
-    @teocavg = ( @peocavg + total_ke ).chg_gphys_k247( \
-                  {"name"=>"teocavg", "long_name"=>"Averaged total energy"})
+    @teocavg = \
+       ( @peocavg + total_ke ).chg_gphys_k247( \
+          {"name"=>"teocavg", "long_name"=>"Averaged total energy"})
   end # def init_teocavg
 
-  # 2015-09-09
   # ToDo: assumption of filename as ".../outdata_YY/q-gcm_XX_YY_out.nc"
   def init_casename
     tmp = @nc_fn.split("q-gcm_")[1] # XX_YY_out.nc
@@ -275,11 +306,13 @@ end # def init_etc
   def init_dname( cname )
     @dname = conv_cname_to_dname( cname ) # !CAUTION!
   end
+
     def conv_cname_to_dname( cname )
-    #here
-    #  return self.class.prep_set_filenames( cname )["dname"]
       return self.class.prep_set_dpath( cname )
     end
+
+
+
 
 ## - class methods for preparation ( unify outdata_*/* )
 ##  contents@2015-09-02
@@ -767,6 +800,24 @@ end
 =end
 
 # for test code
-#if $0 == __FILE__ then
+if $0 == __FILE__ then
 # move test code to test_qgcm_k247.rb
-#end # if $0 == __FILE__ then
+require 'minitest/autorun'
+require_relative "lib_k247_for_qgcm"
+
+class Test_K247_qgcm_E8 < MiniTest::Unit::TestCase
+  def setup
+    @obj = K247_qgcm_data.new( "dx4km2y" ) # temporary @ 2015-10-12
+  end
+
+  def teardown
+    #
+  end
+
+  def test_ssh
+    @obj.sshdec_tmp
+    assert true
+  end
+end # class Test_K247_qgcm_E8 < MiniTest::Unit::TestCase
+
+end # if $0 == __FILE__ then
