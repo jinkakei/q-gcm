@@ -19,6 +19,30 @@ def ary_get_include_index( ary, kwd )
   return idx
 end
 
+
+class K247_Main_Watch
+  # access
+  attr_accessor :begin_time
+
+  def initialize()
+    print "Program ", $0, " Start \n\n"
+    @begin_time = Time.now
+  end # def initialize()
+  
+  def show_time()
+    print "elapsed time = #{(Time.now) - @begin_time}sec\n"
+  end # def show_elapsed()
+  
+  def end_process()
+    end_time = Time.now
+    print "\n\n"
+    print "Program End : #{end_time - @begin_time}sec\n"
+  end # def end_process
+  
+end # class K247_Main_Watch
+
+
+
 # extension of gphys and varray
 #   ver. 2015-10-10: lib_k247/K247_basic.rb
 class NumRu::GPhys

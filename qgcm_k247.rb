@@ -41,7 +41,7 @@ def initialize( argv )
     exit_with_msg( "input casename") if argv == nil
     @nc_fn = init_fname( argv )
     init_set_var
-    init_inparam
+    init_params
     init_monit
     init_etc
   end
@@ -64,38 +64,42 @@ end # initialize
 
 ## - instance methods for check
 # contents ( 2015-09-04 )
-##  chk_energy_avg_stdout( input=nil)
-##  chk_energy_avg_ncout( input=nil)
+##  chk_energy_avg_stdout( input=nil )
+##  chk_energy_avg_ncout(  input=nil )
   
-  # 2015-09-09
   # Check Area averaged energy
   # ToDo
-  #   add zonally & meridionally averaged energies
+  #   - zonally & meridionally averaged energies ( add new method? )
+  #   - for 2 layer only @ 2015-10-12
   def chk_energy_avg_stdout( input=nil )
     puts "Check Area averaged energy (from monit.nc)"
     puts "  case: #{@gcname}-#{@cname}"
+    puts "  te: toal, pe: potential, ke: kinetic energy"
     ke = @keocavg
     pe = @peocavg
     te = @teocavg
 
-    puts "  te change( te[-1]/te[0] )   : #{ te.val[-1] / te.val[0] }"
-    puts "     check ( te.min/te.max )  : #{ te.val.min / te.val.max }"
+    puts "  te change( fin / ini    )   : #{ te.val[-1] / te.val[0] }"
+    puts "     check ( min / max    )   : #{ te.val.min / te.val.max }"
     
-    puts "  pe change( pe[-1]/pe[0] )   : #{ pe.val[-1] / pe.val[0] }"
+    puts "  pe change( fin / ini )      : #{ pe.val[-1] / pe.val[0] }"
 
     puts "  ke change"
-    puts "    upper ( ke[0,-1]/ke[0,0] ): #{ ke.val[0,-1] / ke.val[0,0] }"
+    puts "    upper ( fin / ini )       : #{ ke.val[0,-1] / ke.val[0,0] }"
     if ke.val[1,0] > 0.0
-      puts "    lower ( ke[1,-1]/ke[1,0] ): #{ ke.val[1,-1] / ke.val[1,0] }"
+      puts "    lower ( fin / ini )       : #{ ke.val[1,-1] / ke.val[1,0] }"
     else
       puts "    lower                     : initially at rest"
     end
     puts "    lower / upper"
     puts "      inital                  : #{ ke.val[1,0] / ke.val[0,0] }"
     puts "      final                   : #{ ke.val[1,-1] / ke.val[0,-1] }"
+    puts
+    puts "  ke / pe"
+    puts "      inital                  : #{ ke.val[0, 0] / pe.val[0, 0] }"
+    puts "      final                   : #{ ke.val[0,-1] / pe.val[0,-1] }"
   end # def chk_energy_avg_stdout( input=nil)
 
-  # 2015-09-09
   # Output Area averaged energy to NetCDF file
   # ToDo
   #   - create zonally & meridionally averaged energies
@@ -139,9 +143,9 @@ end # initialize
 ##  init_fname
 ##  init_set_var
 ##  init_monit
-##  init_inparam
-##    init_inparam_nodim
-##    init_inparam_zdim
+##  init_params
+##    init_params_nodim
+##    init_params_zdim
 ##  init_etc
 ##    init_coord
 ##    init_teocavg
@@ -161,6 +165,7 @@ def init_fname( input )
   puts "unified filename: #{nc_fn}"
   return nc_fn
 end
+
   def conv_cname_to_fname( cname )
   #here
   #  return self.class.prep_set_filenames( cname )["out_nf"]
@@ -198,14 +203,14 @@ def init_monit
 end # def init_monit( @nc_fn )
 
 
-def init_inparam
-  init_inparam_zdim
-  init_inparam_nodim
+def init_params
+  init_params_zdim
+  init_params_nodim
 end
 
   # Create: 2015-09-01
   ## ToDo : sophisticate
-  def init_inparam_zdim
+  def init_params_zdim
     @gpoc = GPhys::IO.open( @nc_fn, "gpoc" )
     @cphsoc = GPhys::IO.open( @nc_fn, "cphsoc" )
     @rdefoc = GPhys::IO.open( @nc_fn, "rdefoc" )
@@ -217,22 +222,33 @@ end
   
   
   ## Create: 2015-09-01
-  def init_inparam_nodim
+  def init_params_nodim
     nc_fu = NetCDF.open( @nc_fn )
     anames = nc_fu.att_names
     ## !caution! 
     anames_not_param = ["history", "original"]
-      anames_not_param.each do | dname | anames.delete( dname ) end
+      anames_not_param.each do | aname | anames.delete( aname ) end
     anames.each do | aname |
+=begin
       att_line = nc_fu.att( aname ).get
       val, units, long_name = att_line.split(":")
       tna = NArray[ val.to_f ]
       va_tmp = VArray.new( tna, {"units"=>units, "long_name"=>long_name}, aname)
       instance_variable_set("@#{aname}", va_tmp)
+=end
+      vary = init_set_varray_param( nc_fu, aname )
+      instance_variable_set("@#{aname}", vary)
       #puts "  in_para: #{aname}" # 
     end
     nc_fu.close
   end # set_inparam_nodim
+
+    def init_set_varray_param( nc_fu, aname )
+      att_line = nc_fu.att( aname ).get
+      val, units, long_name = att_line.split(":")
+      tna = NArray[ val.to_f ]
+      return VArray.new( tna, {"units"=>units, "long_name"=>long_name}, aname)
+    end
 
 
 # 2015-09-04
@@ -245,6 +261,8 @@ end # def init_etc
   # ToDo
   #   - refactoring: kill dupliction
   def init_coord
+    # for refactoring
+      #instance_variable_set("@#{aname}", va_tmp)
     @xpcor = @p.coord("xp"); @xp = @xpcor.val; @nxp = @xp.length
     @ypcor = @p.coord("yp"); @yp = @ypcor.val; @nyp = @yp.length
     @zcor = @p.coord("z"); @z = @zcor.val; @nz = @z.length
