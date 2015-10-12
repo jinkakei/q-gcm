@@ -183,22 +183,13 @@ end
 #    - refactoring: kill duplication
 #    - refactoring: [calc pe & set warnig] -> move to prep
 def init_monit
-  @ddtkeoc = GPhys::IO.open( @nc_fn, "ddtkeoc")
-  @ddtpeoc = GPhys::IO.open( @nc_fn, "ddtpeoc")
-  @emfroc = GPhys::IO.open( @nc_fn, "emfroc")
-  @ermaso = GPhys::IO.open( @nc_fn, "ermaso")
-  @et2moc = GPhys::IO.open( @nc_fn, "et2moc")
-  # calc potential energy
-     #tmp = 0.5 * @rhooc * @gpoc *@et2moc # !Caution! "units" become wrong ( kg2 m-3 s-2 )
-     @peocavg = ( @rhooc * @gpoc *@et2moc / 2.0 ).chg_gphys_k247( 
-        {"name"=>"peocavg","long_name"=>"Averaged potential energy"} )
-  @etamoc = GPhys::IO.open( @nc_fn, "etamoc")
-  @kealoc = ( GPhys::IO.open( @nc_fn, "kealoc") ).chg_gphys_k247( {"units"=>"kg.s-2"})
-    @keocavg = @kealoc
-  #@pkenoc = GPhys::IO.open( @nc_fn, "pkenoc")
-  # set warning
-    @pkenoc = ( GPhys::IO.open( @nc_fn, "pkenoc") ).chg_gphys_k247( \
-        {"comment_by_k247"=>"this data are considerted to be broken"} )
+  self.class.prep_monit_get_vname.each do | vn |
+    instance_variable_set( \
+      "@#{vn}", GPhys::IO.open( @nc_fn, vn ) )
+  end
+  @keocavg = @kealoc
+  @peocavg = ( @rhooc * @gpoc * @et2moc / 2.0 ).chg_gphys_k247(
+     {"name"=>"peocavg","long_name"=>"Averaged potential energy"} )
 #  @oc = GPhys::IO.open( @nc_fn, "oc")
 end # def init_monit( @nc_fn )
 
@@ -209,8 +200,6 @@ def init_params
   init_params_nodim
 end
 
-  # Create: 2015-09-01
-  ## ToDo : sophisticate
   def init_params_zdim
     [ "z", "zi" ].each do | dim |
       self.class.prep_params_get_vname( dim ).each do | aname |
@@ -220,7 +209,6 @@ end
     end
   end # def set_inparam_zdim 
   
-  ## Create: 2015-09-01
   def init_params_nodim
     nc_fu = NetCDF.open( @nc_fn )
     self.class.prep_params_get_vname( "nodim" ).each do | aname |
@@ -606,8 +594,16 @@ end
   end
 
     def self.prep_modify_monit_data( gp_monv_org )
-      if gp_monv_org.name == "et2moc"
-        return gp_monv_org.chg_varray_k247( {"units"=>"m2"} )
+      case gp_monv_org.name
+      when "et2moc"
+        return gp_monv_org.chg_varray_k247( {"units"=>"m2", \
+          "comment_by_k247"=>"units corrected from W/m^2"} )
+      when "kealoc"
+        return gp_monv_org.chg_varray_k247( {"units"=>"kg.s-2", \
+          "comment_by_k247"=>"units corrected from J/m^2"} )
+      when "pkenoc"
+        return gp_monv_org.chg_varray_k247( \
+          {"comment_by_k247"=>"this variable is broken"} )
       else
         return gp_monv_org.data
       end
