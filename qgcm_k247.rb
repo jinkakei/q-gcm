@@ -162,7 +162,9 @@ def init_fname( input )
   return nc_fn
 end
   def conv_cname_to_fname( cname )
-    return self.class.prep_set_filenames( cname )["out_nf"]
+  #here
+  #  return self.class.prep_set_filenames( cname )["out_nf"]
+    return self.class.prep_set_unified_fpath( cname )
   end
 
 def init_set_var
@@ -280,7 +282,9 @@ end # def init_etc
     @dname = conv_cname_to_dname( cname ) # !CAUTION!
   end
     def conv_cname_to_dname( cname )
-      return self.class.prep_set_filenames( cname )["dname"]
+    #here
+    #  return self.class.prep_set_filenames( cname )["dname"]
+      return self.class.prep_set_dpath( cname )
     end
 
 ## - class methods for preparation ( unify outdata_*/* )
