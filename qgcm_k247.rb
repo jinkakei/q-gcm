@@ -203,6 +203,7 @@ def init_monit
 end # def init_monit( @nc_fn )
 
 
+
 def init_params
   init_params_zdim
   init_params_nodim
@@ -211,31 +212,18 @@ end
   # Create: 2015-09-01
   ## ToDo : sophisticate
   def init_params_zdim
-    @gpoc = GPhys::IO.open( @nc_fn, "gpoc" )
-    @cphsoc = GPhys::IO.open( @nc_fn, "cphsoc" )
-    @rdefoc = GPhys::IO.open( @nc_fn, "rdefoc" )
-    @ah2oc = GPhys::IO.open( @nc_fn, "ah2oc" )
-    @ah4oc = GPhys::IO.open( @nc_fn, "ah4oc" )
-    @tabsoc = GPhys::IO.open( @nc_fn, "tabsoc" )
-    @hoc = GPhys::IO.open( @nc_fn, "hoc" )
-  end # def set_inparam_zdim( @nc_fn )
-  
+    [ "z", "zi" ].each do | dim |
+      self.class.prep_params_get_vname( dim ).each do | aname |
+        instance_variable_set( \
+          "@#{aname}", GPhys::IO.open( @nc_fn, aname ) )
+      end
+    end
+  end # def set_inparam_zdim 
   
   ## Create: 2015-09-01
   def init_params_nodim
     nc_fu = NetCDF.open( @nc_fn )
-    anames = nc_fu.att_names
-    ## !caution! 
-    anames_not_param = ["history", "original"]
-      anames_not_param.each do | aname | anames.delete( aname ) end
-    anames.each do | aname |
-=begin
-      att_line = nc_fu.att( aname ).get
-      val, units, long_name = att_line.split(":")
-      tna = NArray[ val.to_f ]
-      va_tmp = VArray.new( tna, {"units"=>units, "long_name"=>long_name}, aname)
-      instance_variable_set("@#{aname}", va_tmp)
-=end
+    self.class.prep_params_get_vname( "nodim" ).each do | aname |
       vary = init_set_varray_param( nc_fu, aname )
       instance_variable_set("@#{aname}", vary)
       #puts "  in_para: #{aname}" # 
