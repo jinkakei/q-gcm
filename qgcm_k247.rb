@@ -64,24 +64,66 @@ end # initialize
 
 
 ## - instance methods for ssh decay
+##  - ( sshdec )
+##    -- sshdec_tmp
+##    -- sshdec_get
+##  - ( sshmax )
+##    -- sshmax_get_with_ij
+##    -- sshmax_write
+##  - 
+##  - 
+##  - 
+##  - 
+##  - 
+##  - 
 def sshdec_tmp
-  @ssh = @p.cut( "z" => @z[0] ) * @m_to_cm / @grav
-  hmax   = NArray.sfloat( @nt )
-    imax = NArray.sfloat( @nt )
-    jmax = NArray.sfloat( @nt )
-  for tn in 0..@nt-1
-    hmax[tn], imax[tn], jmax[tn] = \
-      na_max_with_index_k247( @ssh.cut( "time" => @t[tn]).val )
-    #puts hmax[tn] #, imax[tn], jmax[tn]
-  end
+  hdec = sshdec_get
   grid_t = Grid.new( Axis.new.set_pos( @tcor ) )
-  nc_fu = NetCDF.create( "./test20151012.nc" )
-    va_h = VArray.new( hmax, {"units"=>"cm", "long_name"=>"ssh_max"}, "hmax")
+  nc_fu = NetCDF.create( "./test20151013.nc" )
+    va_h = VArray.new( hdec, {"units"=>"cm/year", "long_name"=>"ssh_decay"}, "hdec")
     gp_h = GPhys.new( grid_t, va_h )
     GPhys::NetCDF_IO.write( nc_fu, gp_h )
   nc_fu.close
 end
 
+  def sshdec_get
+    hmax, imax, jmax = sshmax_get_with_ij
+    hdec = NArray.sfloat( @nt )
+    for tn in 1..@nt-2
+    # cm/day
+    #  hdec[tn] = ( hmax[ tn + 1 ] - hmax[ tn - 1 ] ) / \
+    # cm/year
+      hdec[tn] = ( hmax[ tn + 1 ] - hmax[ tn - 1 ] ) * 365.0 / \
+          ( @t[ tn + 1] - @t[tn - 1] )
+    end
+      hdec[0] = hdec[1]; hdec[ @nt - 1] = hdec[ @nt - 2]
+    return hdec
+  end
+
+  def sshmax_write
+    hmax, imax, jmax = sshmax_get_with_ij
+    grid_t = Grid.new( Axis.new.set_pos( @tcor ) )
+    nc_fu = NetCDF.create( "./test_tmp.nc" )
+      va_h = VArray.new( hmax, {"units"=>"cm", "long_name"=>"ssh_max"}, "hmax")
+      gp_h = GPhys.new( grid_t, va_h )
+      GPhys::NetCDF_IO.write( nc_fu, gp_h )
+    nc_fu.close
+  end
+
+  def sshmax_get_with_ij
+    @ssh = @p.cut( "z" => @z[0] ) * @m_to_cm / @grav
+    hmax   = NArray.sfloat( @nt )
+      imax = NArray.sfloat( @nt )
+      jmax = NArray.sfloat( @nt )
+    for tn in 0..@nt-1
+      hmax[tn], imax[tn], jmax[tn] = \
+        na_max_with_index_k247( @ssh.cut( "time" => @t[tn]).val )
+      #  na_max_with_index_k247( @p.cut( "z"=> @z[0], "time" => @t[tn]).val )
+      #puts hmax[tn] #, imax[tn], jmax[tn]
+    end
+
+    return hmax, imax, jmax
+  end
 
 
 ## - instance methods for check
@@ -304,7 +346,7 @@ end # def init_etc
   end # def init_casename
   
   def init_dname( cname )
-    @dname = conv_cname_to_dname( cname ) # !CAUTION!
+    @dname = conv_cname_to_dname( cname )
   end
 
     def conv_cname_to_dname( cname )
@@ -807,14 +849,25 @@ require_relative "lib_k247_for_qgcm"
 
 class Test_K247_qgcm_E8 < MiniTest::Unit::TestCase
   def setup
-    @obj = K247_qgcm_data.new( "dx4km2y" ) # temporary @ 2015-10-12
+  #  @obj = K247_qgcm_data.new( "dx4km2y" ) # temporary @ 2015-10-12
+    @obj = K247_qgcm_data.new( "tmp" ) # temporary @ 2015-10-12
   end
 
   def teardown
     #
   end
 
-  def test_ssh
+  def test_sshmax_get_with_ij
+    hmax, imax, jmax = @obj.sshmax_get_with_ij
+    assert_equal NArray, hmax.class
+  end
+
+  def test_sshdec_get
+    hdec = @obj.sshdec_get
+    assert_equal NArray, hdec.class
+  end
+
+  def test_sshdec_get_tmp
     @obj.sshdec_tmp
     assert true
   end
