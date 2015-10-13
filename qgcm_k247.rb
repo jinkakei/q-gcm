@@ -24,6 +24,8 @@ class K247_qgcm_data
   attr_reader :grav, :m_to_cm
   # from init_etc
   attr_reader :gcname, :cname, :dname
+  # init_etc_additional_params
+  attr_reader :rdxof0, :rdxof0_val
 
 # 2015-08 or 09: create
 # 2015-09-10: modify argument ( nc_fn -> input: fname or casename)
@@ -70,12 +72,47 @@ end # initialize
 ##  - ( sshmax )
 ##    -- sshmax_get_with_ij
 ##    -- sshmax_write
+##  - ( ugeos)
+##    --
+##    --
 ##  - 
 ##  - 
 ##  - 
 ##  - 
-##  - 
-##  - 
+
+=begin
+# behavoir of units class
+  puts @dxo.units   # m
+  rdxo = 1.0 / @dxo
+  puts rdxo.units   # 1
+  rdxo = @dxo**-1
+  puts rdxo.units   # m-1
+=end
+
+# ToDo: 
+#   - calc by GPhys object?
+#   - ! generalize ! 2015-10-12 for z = 0 only 
+#   - 
+def ugeooc_tmp( range = { "xp"=>@xp[900..1020], "yp"=>@yp[420..540], "time"=> @t[0..-1], "z"=>@z[0]} )
+#def ugeooc_tmp( po ) # NArray ( for calculation of energy around eddy )
+  po = @p.cut( range ).val
+    nx = po.shape[0]
+    ny = po.shape[1]
+    nt = po.shape[2]
+  ugeooc = NArray.sfloat( nx, ny, nt )
+  for t in 0..nt - 1
+  for j in 1..ny - 2
+  for i in 0..nx - 1
+    ugeooc[i,j,t] = - 0.5 * @rdxof0_val \
+      * ( po[i, j+1, t] - po[i, j-1, t] )
+    # modify from monit_diag.F: ugeos
+  end
+  end
+  end
+=begin
+=end
+end
+
 def sshdec_tmp
   hdec = sshdec_get
   grid_t = Grid.new( Axis.new.set_pos( @tcor ) )
@@ -304,6 +341,7 @@ end
 
 def init_etc
   init_coord
+  init_etc_additional_params
   init_teocavg
   init_casename
 end # def init_etc
@@ -319,6 +357,11 @@ end # def init_etc
     @tcor = @p.coord("time"); @t = @tcor.val; @nt = @t.length
     @tmcor = @et2moc.coord("time_monitor"); @tm = @tmcor.val; @ntm = @tm.length
   end # def init_coord
+
+  def init_etc_additional_params
+    @rdxof0 = ( @dxo * @fnot )**-1.0
+      @rdxof0_val = @rdxof0.val[0]
+  end
 
   # 2015-09-04
   # ToDo
@@ -867,8 +910,13 @@ class Test_K247_qgcm_E8 < MiniTest::Unit::TestCase
     assert_equal NArray, hdec.class
   end
 
-  def test_sshdec_get_tmp
-    @obj.sshdec_tmp
+#  def test_sshdec_get_tmp
+#    @obj.sshdec_tmp
+#    assert true
+#  end
+
+  def test_ugeooc_tmp
+    @obj.ugeooc_tmp
     assert true
   end
 end # class Test_K247_qgcm_E8 < MiniTest::Unit::TestCase
