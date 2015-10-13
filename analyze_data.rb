@@ -12,9 +12,10 @@ qgd = K247_qgcm_data.new( "dx4km2y" ) # test@2015-10-12
 #  qgd.chk_energy_avg_ncout
 
 ## check ssh max
-  qgd.sshdec_tmp
+#  qgd.sshdec_tmp
 
-
+## check ke sum around eddy
+  qgd.ke_sum_write
 
 
 watcher.end_process

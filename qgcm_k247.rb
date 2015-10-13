@@ -27,6 +27,7 @@ class K247_qgcm_data
   # init_etc_additional_params
   attr_reader :rdxof0, :rdxof0_val, :rgpoc, :rgpoc_val
 
+
 # 2015-08 or 09: create
 # 2015-09-10: modify argument ( nc_fn -> input: fname or casename)
 ## Todo
@@ -58,11 +59,15 @@ end # initialize
     end
   end
 
+
+
+
 # methods index
 ## - instance methods for ssh decay
 ## - instance methods for check 
 ## - instance methods for initialzie
 ## - class methods for preparation ( unify outdata_*/* )
+
 
 
 ## - instance methods for ssh decay
@@ -72,26 +77,75 @@ end # initialize
 ##  - ( sshmax )
 ##    -- sshmax_get_with_ij
 ##    -- sshmax_write
-##  - ( ugeos)
-##    --
-##    --
+##  - ( ugeos )
+##    -- uvgeooc_calc_wrap( ij_range, k, t )
+##    -- uvgeooc2d_calc( po2d )
+##  - ke2d_calc( ij_range, k, t )
+##    -- a 
+##    -- a 
+##    -- a 
 ##  - 
 ##  - 
 ##  - 
 ##  - 
 
-def ke_tmp
-  ug, vg = uvgeooc_calc_wrap
-  #ug, vg = uvgeooc_calc( @p.val[0..-1, 0..-1, 0, 0..-1] )
-  #  24sec: 1921x961x1x3 
-
-  #  puts ug.max; puts vg.max
-  keoc = 0.5 * @rhooc.val[0] * @hoc.val[0] \
-    * ( ug**2.0 + vg**2.0 )
+def ke_sum_write
+  ke_sum = ke_sum_around_eddy
+  #  puts ke_sum.inspect
+  #  puts @tcor.inspect
+  grid_t = Grid.new( Axis.new.set_pos( @tcor ) )
+  nc_fu = NetCDF.create( "./ke_20151013.nc" ) # temporary
+    va_ke = VArray.new( ke_sum, \
+             {"units"=>"kg.s-2", "long_name"=>"ke_sum_around_eddy"}, "ke_sum")
+    gp_ke = GPhys.new( grid_t, va_ke )
+    GPhys::NetCDF_IO.write( nc_fu, gp_ke )
+  nc_fu.close
 end
 
-def uvgeooc_calc_wrap( range = { "xp"=>@xp[900..1020], "yp"=>@yp[420..540], "time"=> @t[0..-1], "z"=>@z[0]} )
-  return uvgeooc_calc( @p.cut( range ).val )
+def ke_sum_around_eddy
+  @length_arround_eddy = 240.0 * 1000.0 # [m]
+  ke_sum = NArray.sfloat( @nt )
+  hmax, ie, je = sshmax_get_with_ij
+  wdh = ( @length_arround_eddy / @dxo.val[0] ).to_i
+    n_region = ( 2.0 * wdh.to_f + 1.0 )**2.0
+  for tn in 0..@nt-1
+    ij_r = { "xp"=>@xp[ie[tn]-wdh..ie[tn]+wdh], \
+             "yp"=>@yp[je[tn]-wdh..je[tn]+wdh] }
+    #ke_region = ke2d_calc( ij_r, 0, tn )
+    ke_sum[tn] = ke2d_calc( ij_r, 0, tn ).sum / n_region
+  end
+  return ke_sum
+end
+
+def pe2d_calc( ij_range, k, t )
+  range         = ij_range
+  range["z"]    = @z[k]
+  range["time"] = @t[t]
+  p_up   = @p.cut( range ).val 
+  range["z"]    = @z[k+1]
+  p_down = @p.cut( range ).val
+  eta = @rgpoc.val[k] * ( p_down - p_up )
+  pe  = @rhooc.val[k] * @gpoc.val[k] * eta**2.0
+  puts pe.inspect
+end
+
+def ke2d_calc( ij_range, k, t )
+  ug, vg = uvgeooc_calc_wrap( ij_range, k, t )
+  #ug, vg = uvgeooc_calc_wrap( {"xp"=>@xp[@nxc-40..@nxc+40], "yp"=>@yp[@nyc-40..@nyc+40] }, 0, 0 )
+  #ug, vg = uvgeooc_calc_wrap( {"xp"=>@xp[0..-1], "yp"=>@yp[0..-1] }, 0, 0 )
+  #  24sec: 1921x961x1x3 
+  #  puts ug.max; puts vg.max
+  
+  keoc = 0.5 * @rhooc.val[k] * @hoc.val[k] * ( ug**2.0 + vg**2.0 )
+  return keoc
+end
+
+# default value
+def uvgeooc_calc_wrap( ij_range = { "xp"=>@xp[@nxc-60..@nxc+60], "yp"=>@yp[@nyc-60..@nyc+60] } , k = 0, t = 0 )
+  range         = ij_range
+  range["z"]    = @z[k]
+  range["time"] = @t[t]
+  return uvgeooc2d_calc( @p.cut( range ).val )
 end
 
 # ToDo: 
@@ -101,20 +155,26 @@ end
 # modify from monit_diag.F: 
 #   ugeos = -rdxof0*( po(i,j+1,k) - po(i,j,k))
 #   vgeos =  rdxof0*( po(i+1,j,k) - po(i,j,k))
-def uvgeooc_calc( po ) # NArray ( for calculation of energy around eddy )
-  nx, ny, nt = po.shape
-  ugeooc = NArray.sfloat( nx, ny, nt )
-  vgeooc = NArray.sfloat( nx, ny, nt )
-  for t in 0..nt - 1
-  for j in 1..ny - 2
-  for i in 1..nx - 2
-    ugeooc[ i, j, t] = - 0.5 * @rdxof0_val \
-      * ( po[ i  , j+1, t] - po[ i  , j-1, t] )
-    vgeooc[ i, j, t] =   0.5 * @rdxof0_val \
-      * ( po[ i+1, j  , t] - po[ i-1, j  , t] )
+def uvgeooc2d_calc( po2d ) # NArray ( for calculation of energy around eddy )
+  po = po2d # alias
+  nx, ny = po.shape
+  ugeooc = NArray.sfloat( nx, ny )
+  vgeooc = NArray.sfloat( nx, ny )
+  ugeooc[1..nx-2, 1..ny-2] = - 0.5 * @rdxof0_val \
+    * ( po[1..nx-2, 2..ny-1] - po[1..nx-2, 0..ny-3] )
+  vgeooc[1..nx-2, 1..ny-2] =   0.5 * @rdxof0_val \
+    * ( po[2..nx-1, 1..ny-2] - po[0..nx-3, 1..ny-2] )
+=begin
+  for i in 1..nx-2
+  for j in 1..ny-2
+    ugeooc[i,j] = - 0.5 * @rdxof0_val \
+      * ( po[i, j+1] - po[i, j-1] )
+    vgeooc[i,j] =   0.5 * @rdxof0_val \
+      * ( po[i+1, j] - po[i-1, j] )
   end
   end
-  end
+=end
+  #puts ugeooc.inspect
   #puts ugeooc.max; puts vgeooc.max
   return ugeooc, vgeooc
 end
@@ -367,7 +427,9 @@ end # def init_etc
   #       instance_variable_set("@#{aname}", va_tmp)
   def init_coord
     @xpcor = @p.coord("xp"); @xp = @xpcor.val; @nxp = @xp.length
+      @nxc = ( @nxp - 1 ) / 2
     @ypcor = @p.coord("yp"); @yp = @ypcor.val; @nyp = @yp.length
+      @nyc = ( @nyp - 1 ) / 2
     @zcor = @p.coord("z"); @z = @zcor.val; @nz = @z.length
     @zicor = @et2moc.coord("zi"); @zi = @zicor.val; @nzi = @zi.length
     @tcor = @p.coord("time"); @t = @tcor.val; @nt = @t.length
@@ -938,10 +1000,29 @@ class Test_K247_qgcm_E8 < MiniTest::Unit::TestCase
 #    assert true
 #  end
 
-  def test_tmp
-    #@obj.ke_tmp
+  def test_ke2d_calc
+    @obj.ke2d_calc( { "xp"=>[-8.0, -4.0, 0.0, 4.0, 8.0], \
+                      "yp"=>[-8.0, -4.0, 0.0, 4.0, 8.0] }, 0, 0 )
     assert true
   end
+
+  def test_pe2d_calc
+    @obj.pe2d_calc( { "xp"=>[-8.0, -4.0, 0.0, 4.0, 8.0], \
+                      "yp"=>[-8.0, -4.0, 0.0, 4.0, 8.0] }, 0, 0 )
+    assert true
+  end
+=begin
+  def test_ke_sum_write
+    @obj.ke_sum_write
+    assert true
+  end
+# heavy
+  def test_ke_sum_around_eddy
+    ke_sum = @obj.ke_sum_around_eddy
+    puts ke_sum.inspect
+    assert true
+  end
+=end
 end # class Test_K247_qgcm_E8 < MiniTest::Unit::TestCase
 
 end # if $0 == __FILE__ then
