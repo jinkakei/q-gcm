@@ -25,7 +25,7 @@ class K247_qgcm_data
   # from init_etc
   attr_reader :gcname, :cname, :dname
   # init_etc_additional_params
-  attr_reader :rdxof0, :rdxof0_val
+  attr_reader :rdxof0, :rdxof0_val, :rgpoc, :rgpoc_val
 
 # 2015-08 or 09: create
 # 2015-09-10: modify argument ( nc_fn -> input: fname or casename)
@@ -80,38 +80,54 @@ end # initialize
 ##  - 
 ##  - 
 
-=begin
-# behavoir of units class
-  puts @dxo.units   # m
-  rdxo = 1.0 / @dxo
-  puts rdxo.units   # 1
-  rdxo = @dxo**-1
-  puts rdxo.units   # m-1
-=end
+def ke_tmp
+  ug, vg = uvgeooc_calc_wrap
+  #ug, vg = uvgeooc_calc( @p.val[0..-1, 0..-1, 0, 0..-1] )
+  #  24sec: 1921x961x1x3 
+
+  #  puts ug.max; puts vg.max
+  keoc = 0.5 * @rhooc.val[0] * @hoc.val[0] \
+    * ( ug**2.0 + vg**2.0 )
+end
+
+def uvgeooc_calc_wrap( range = { "xp"=>@xp[900..1020], "yp"=>@yp[420..540], "time"=> @t[0..-1], "z"=>@z[0]} )
+  return uvgeooc_calc( @p.cut( range ).val )
+end
 
 # ToDo: 
-#   - calc by GPhys object?
+#   - calc by GPhys object? or NArray
 #   - ! generalize ! 2015-10-12 for z = 0 only 
 #   - 
-def ugeooc_tmp( range = { "xp"=>@xp[900..1020], "yp"=>@yp[420..540], "time"=> @t[0..-1], "z"=>@z[0]} )
-#def ugeooc_tmp( po ) # NArray ( for calculation of energy around eddy )
-  po = @p.cut( range ).val
-    nx = po.shape[0]
-    ny = po.shape[1]
-    nt = po.shape[2]
+# modify from monit_diag.F: 
+#   ugeos = -rdxof0*( po(i,j+1,k) - po(i,j,k))
+#   vgeos =  rdxof0*( po(i+1,j,k) - po(i,j,k))
+def uvgeooc_calc( po ) # NArray ( for calculation of energy around eddy )
+  nx, ny, nt = po.shape
   ugeooc = NArray.sfloat( nx, ny, nt )
+  vgeooc = NArray.sfloat( nx, ny, nt )
   for t in 0..nt - 1
   for j in 1..ny - 2
-  for i in 0..nx - 1
-    ugeooc[i,j,t] = - 0.5 * @rdxof0_val \
-      * ( po[i, j+1, t] - po[i, j-1, t] )
-    # modify from monit_diag.F: ugeos
+  for i in 1..nx - 2
+    ugeooc[ i, j, t] = - 0.5 * @rdxof0_val \
+      * ( po[ i  , j+1, t] - po[ i  , j-1, t] )
+    vgeooc[ i, j, t] =   0.5 * @rdxof0_val \
+      * ( po[ i+1, j  , t] - po[ i-1, j  , t] )
   end
   end
   end
-=begin
-=end
+  #puts ugeooc.max; puts vgeooc.max
+  return ugeooc, vgeooc
 end
+=begin
+  # behavoir of units class
+    puts @dxo.units   # m
+    rdxo = 1.0 / @dxo
+    puts rdxo.units   # 1
+    rdxo = @dxo**-1
+    puts rdxo.units   # m-1
+=end
+
+
 
 def sshdec_tmp
   hdec = sshdec_get
@@ -361,6 +377,8 @@ end # def init_etc
   def init_etc_additional_params
     @rdxof0 = ( @dxo * @fnot )**-1.0
       @rdxof0_val = @rdxof0.val[0]
+    @rgpoc = ( @gpoc )**-1.0
+      @rgpoc_val = @rgpoc.val
   end
 
   # 2015-09-04
@@ -915,8 +933,13 @@ class Test_K247_qgcm_E8 < MiniTest::Unit::TestCase
 #    assert true
 #  end
 
-  def test_ugeooc_tmp
-    @obj.ugeooc_tmp
+#  def test_uvgeooc_calc
+#    @obj.uvgeooc_calc_wrap
+#    assert true
+#  end
+
+  def test_tmp
+    #@obj.ke_tmp
     assert true
   end
 end # class Test_K247_qgcm_E8 < MiniTest::Unit::TestCase
