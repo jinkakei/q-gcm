@@ -89,16 +89,19 @@ end # initialize
 ##  - 
 ##  - 
 
+#here
 def energy_sum_ncwrite
-  @length_arround_eddy = 240.0 * 1000.0 # [m]
-  #@length_arround_eddy = 20.0 * 1000.0 # [m]: for test
+  @length_around_eddy = 240.0 * 1000.0 # [m]
+  #@length_around_eddy = 20.0 * 1000.0 # [m]: for test
   ke_sum, pe_sum = energy_sum_around_eddy
-  te_sum = ke_sum + pe_sum
+  #te_sum = ke_sum + pe_sum
   nc_fu = NetCDF.create( "./eddy_energy.nc" ) # temporary
     grid_t = Grid.new( Axis.new.set_pos( @tcor ) )
     tmp_en_sum_gpwrite( nc_fu, grid_t, ke_sum, "ke_sum")
     tmp_en_sum_gpwrite( nc_fu, grid_t, pe_sum, "pe_sum")
-    tmp_en_sum_gpwrite( nc_fu, grid_t, te_sum, "te_sum")
+    tmp_en_sum_gpwrite( nc_fu, grid_t, ke_sum+pe_sum, "te_sum")
+    nc_fu.put_att( "length_around_eddy_km", \
+                    @length_around_eddy / 1000.0)
   nc_fu.close
 end
 
@@ -108,6 +111,19 @@ end
               "long_name"=>"#{vname}_around_eddy"}, \
               vname )
     GPhys::NetCDF_IO.write( nc_fu, GPhys.new( grid_t, va_e ) )
+
+    # temporary@2015-10-14
+    e_dec = NArray.sfloat( @nt )
+    for tn in 1..nt-2
+      e_dec[tn] = ( e_sum[ tn+1 ] - e_sum[ tn-1 ] ) / \
+                    ( 2.0 * @dto.val[0] )
+    end
+    e_dec[0] = e_dec[1]; e_dec[@nt - 1] = e_dec[ @nt - 2 ]
+    va_edec = VArray.new( e_dec, \
+             {"units"=>"kg.s-2/day", \
+              "long_name"=>"#{vname}_decayrate"}, \
+              "#{vname}_dec" )
+    GPhys::NetCDF_IO.write( nc_fu, GPhys.new( grid_t, va_edec ) )
   end
 
 # checker: compair with monit.nc
@@ -128,7 +144,7 @@ def energy_sum_around_eddy
   ke_sum = NArray.sfloat( @nt )
   pe_sum = NArray.sfloat( @nt )
   hmax, ie, je = sshmax_get_with_ij
-  wdh = ( @length_arround_eddy / @dxo.val[0] ).to_i
+  wdh = ( @length_around_eddy / @dxo.val[0] ).to_i
     n_region = ( 2.0 * wdh.to_f + 1.0 )**2.0
   for tn in 0..@nt-1
     ij_r = { "xp"=>@xp[ie[tn]-wdh..ie[tn]+wdh], \
@@ -244,19 +260,22 @@ end
   end
 
   def sshmax_get_with_ij
-    ssh = @p.cut( "z" => @z[0] ) * @m_to_cm / @grav 
-    hmax   = NArray.sfloat( @nt )
+    pmax   = NArray.sfloat( @nt )
       imax = NArray.sfloat( @nt )
       jmax = NArray.sfloat( @nt )
+    ssh_now = NArray.sfloat( @nxp, @nyp )
     for tn in 0..@nt-1
-      hmax[tn], imax[tn], jmax[tn] = \
-        na_max_with_index_k247( ssh.cut( "time" => @t[tn]).val )
+      pmax[tn], imax[tn], jmax[tn] = \
+        na_max_with_index_k247( \
+          @p.cut( "z" => @z[0], "time" => @t[tn] ).val )
     end
-
+    hmax = pmax[0..-1] * @m_to_cm.val[0] / @grav.val[0]
     return hmax, imax, jmax
   end
 =begin
   def sshmax_get_with_ij
+  # failed to allocate memory ( 1920x960x2x72)
+  #  ssh = ( @p.cut( "z" => @z[0] ) * @m_to_cm / @grav ).val
     @ssh = @p.cut( "z" => @z[0] ) * @m_to_cm / @grav
     hmax   = NArray.sfloat( @nt )
       imax = NArray.sfloat( @nt )
@@ -1046,8 +1065,7 @@ class Test_K247_qgcm_E8 < MiniTest::Unit::TestCase
   end
 
   def test_energy_sum_ncwrite
-    @obj2 = K247_qgcm_data.new( "dx4km2y" )
-    @obj2.energy_sum_ncwrite
+    @obj.energy_sum_ncwrite
     assert true
   end
 
