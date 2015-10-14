@@ -244,6 +244,19 @@ end
   end
 
   def sshmax_get_with_ij
+    ssh = @p.cut( "z" => @z[0] ) * @m_to_cm / @grav 
+    hmax   = NArray.sfloat( @nt )
+      imax = NArray.sfloat( @nt )
+      jmax = NArray.sfloat( @nt )
+    for tn in 0..@nt-1
+      hmax[tn], imax[tn], jmax[tn] = \
+        na_max_with_index_k247( ssh.cut( "time" => @t[tn]).val )
+    end
+
+    return hmax, imax, jmax
+  end
+=begin
+  def sshmax_get_with_ij
     @ssh = @p.cut( "z" => @z[0] ) * @m_to_cm / @grav
     hmax   = NArray.sfloat( @nt )
       imax = NArray.sfloat( @nt )
@@ -251,13 +264,12 @@ end
     for tn in 0..@nt-1
       hmax[tn], imax[tn], jmax[tn] = \
         na_max_with_index_k247( @ssh.cut( "time" => @t[tn]).val )
-      #  na_max_with_index_k247( @p.cut( "z"=> @z[0], "time" => @t[tn]).val )
       #puts hmax[tn] #, imax[tn], jmax[tn]
     end
 
     return hmax, imax, jmax
   end
-
+=end
 
 ## - instance methods for check
 # contents ( 2015-09-04 )
@@ -1034,7 +1046,8 @@ class Test_K247_qgcm_E8 < MiniTest::Unit::TestCase
   end
 
   def test_energy_sum_ncwrite
-    @obj.energy_sum_ncwrite
+    @obj2 = K247_qgcm_data.new( "dx4km2y" )
+    @obj2.energy_sum_ncwrite
     assert true
   end
 
