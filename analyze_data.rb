@@ -15,7 +15,7 @@ qgd = K247_qgcm_data.new( "dx4km2y" ) # test@2015-10-12
 #  qgd.sshdec_tmp
 
 ## check ke sum around eddy
-  qgd.ke_sum_write
+  qgd.energy_sum_ncwrite
 
 
 watcher.end_process

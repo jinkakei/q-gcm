@@ -89,32 +89,54 @@ end # initialize
 ##  - 
 ##  - 
 
-def ke_sum_write
-  ke_sum = ke_sum_around_eddy
-  #  puts ke_sum.inspect
-  #  puts @tcor.inspect
-  grid_t = Grid.new( Axis.new.set_pos( @tcor ) )
-  nc_fu = NetCDF.create( "./ke_20151013.nc" ) # temporary
-    va_ke = VArray.new( ke_sum, \
-             {"units"=>"kg.s-2", "long_name"=>"ke_sum_around_eddy"}, "ke_sum")
-    gp_ke = GPhys.new( grid_t, va_ke )
-    GPhys::NetCDF_IO.write( nc_fu, gp_ke )
+def energy_sum_ncwrite
+  @length_arround_eddy = 240.0 * 1000.0 # [m]
+  #@length_arround_eddy = 20.0 * 1000.0 # [m]: for test
+  ke_sum, pe_sum = energy_sum_around_eddy
+  te_sum = ke_sum + pe_sum
+  nc_fu = NetCDF.create( "./eddy_energy.nc" ) # temporary
+    grid_t = Grid.new( Axis.new.set_pos( @tcor ) )
+    tmp_en_sum_gpwrite( nc_fu, grid_t, ke_sum, "ke_sum")
+    tmp_en_sum_gpwrite( nc_fu, grid_t, pe_sum, "pe_sum")
+    tmp_en_sum_gpwrite( nc_fu, grid_t, te_sum, "te_sum")
   nc_fu.close
 end
 
-def ke_sum_around_eddy
-  @length_arround_eddy = 240.0 * 1000.0 # [m]
+  def tmp_en_sum_gpwrite( nc_fu, grid_t, e_sum, vname )
+    va_e = VArray.new( e_sum, \
+             {"units"=>"kg.s-2", \
+              "long_name"=>"#{vname}_around_eddy"}, \
+              vname )
+    GPhys::NetCDF_IO.write( nc_fu, GPhys.new( grid_t, va_e ) )
+  end
+
+# checker: compair with monit.nc
+def energy_sum_all_region
+  nxy = @nxp * @nyp
+  for tn in 0..@nt-1
+    ij_r = { "xp"=>@xp[0..-1], "yp"=>@yp[0..-1] }
+    ke_sum = ke2d_calc( ij_r, 0, tn ).sum / nxy
+    puts "ke: #{ke_sum} (k=0,tn=#{tn})"
+    ke_sum = ke2d_calc( ij_r, 1, tn ).sum / nxy
+    puts "ke: #{ke_sum} (k=1,tn=#{tn})"
+    pe_sum = pe2d_calc( ij_r, 0, tn ).sum / nxy
+    puts "pe: #{pe_sum} (k=0,tn=#{tn})"
+  end
+end
+
+def energy_sum_around_eddy
   ke_sum = NArray.sfloat( @nt )
+  pe_sum = NArray.sfloat( @nt )
   hmax, ie, je = sshmax_get_with_ij
   wdh = ( @length_arround_eddy / @dxo.val[0] ).to_i
     n_region = ( 2.0 * wdh.to_f + 1.0 )**2.0
   for tn in 0..@nt-1
     ij_r = { "xp"=>@xp[ie[tn]-wdh..ie[tn]+wdh], \
              "yp"=>@yp[je[tn]-wdh..je[tn]+wdh] }
-    #ke_region = ke2d_calc( ij_r, 0, tn )
     ke_sum[tn] = ke2d_calc( ij_r, 0, tn ).sum / n_region
+    pe_sum[tn] = pe2d_calc( ij_r, 0, tn ).sum / n_region
   end
-  return ke_sum
+  return ke_sum, pe_sum
 end
 
 def pe2d_calc( ij_range, k, t )
@@ -125,18 +147,16 @@ def pe2d_calc( ij_range, k, t )
   range["z"]    = @z[k+1]
   p_down = @p.cut( range ).val
   eta = @rgpoc.val[k] * ( p_down - p_up )
-  pe  = @rhooc.val[k] * @gpoc.val[k] * eta**2.0
-  puts pe.inspect
+  pe  = 0.5 * @rhooc.val[k] * @gpoc.val[k] * eta**2.0
+  return pe
 end
 
 def ke2d_calc( ij_range, k, t )
   ug, vg = uvgeooc_calc_wrap( ij_range, k, t )
-  #ug, vg = uvgeooc_calc_wrap( {"xp"=>@xp[@nxc-40..@nxc+40], "yp"=>@yp[@nyc-40..@nyc+40] }, 0, 0 )
-  #ug, vg = uvgeooc_calc_wrap( {"xp"=>@xp[0..-1], "yp"=>@yp[0..-1] }, 0, 0 )
   #  24sec: 1921x961x1x3 
   #  puts ug.max; puts vg.max
   
-  keoc = 0.5 * @rhooc.val[k] * @hoc.val[k] * ( ug**2.0 + vg**2.0 )
+  keoc = 0.5 * @rhooc.val[0] * @hoc.val[k] * ( ug**2.0 + vg**2.0 )
   return keoc
 end
 
@@ -531,6 +551,7 @@ end # def self.prep_unify_outdata
 def self.check_case( cname )
   exit_with_msg("input case name") if cname==nil
 end
+
 def check_case( cname )
   exit_with_msg("input case name") if cname==nil
 end
@@ -973,7 +994,7 @@ require_relative "lib_k247_for_qgcm"
 class Test_K247_qgcm_E8 < MiniTest::Unit::TestCase
   def setup
   #  @obj = K247_qgcm_data.new( "dx4km2y" ) # temporary @ 2015-10-12
-    @obj = K247_qgcm_data.new( "tmp" ) # temporary @ 2015-10-12
+    @obj = K247_qgcm_data.new( "test" ) # temporary @ 2015-10-12
   end
 
   def teardown
@@ -1011,9 +1032,15 @@ class Test_K247_qgcm_E8 < MiniTest::Unit::TestCase
                       "yp"=>[-8.0, -4.0, 0.0, 4.0, 8.0] }, 0, 0 )
     assert true
   end
+
+  def test_energy_sum_ncwrite
+    @obj.energy_sum_ncwrite
+    assert true
+  end
+
 =begin
-  def test_ke_sum_write
-    @obj.ke_sum_write
+  def test_energy_sum_all_region
+    @obj.energy_sum_all_region
     assert true
   end
 # heavy
