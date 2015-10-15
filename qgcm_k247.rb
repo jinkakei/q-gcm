@@ -26,6 +26,8 @@ class K247_qgcm_data
   attr_reader :gcname, :cname, :dname
   # init_etc_additional_params
   attr_reader :rdxof0, :rdxof0_val, :rgpoc, :rgpoc_val
+  # sshmax_set_with_ij
+  attr_reader :hmax, :hmax_i, :hmax_j
 
 
 # 2015-08 or 09: create
@@ -228,7 +230,7 @@ end
 def sshdec_tmp
   hdec = sshdec_get
   grid_t = Grid.new( Axis.new.set_pos( @tcor ) )
-  nc_fu = NetCDF.create( "./test20151013.nc" )
+  nc_fu = NetCDF.create( "#{@dname}sshdec_etc.nc" )
     va_h = VArray.new( hdec, {"units"=>"cm/year", "long_name"=>"ssh_decay"}, "hdec")
     gp_h = GPhys.new( grid_t, va_h )
     GPhys::NetCDF_IO.write( nc_fu, gp_h )
@@ -245,7 +247,7 @@ end
       hdec[tn] = ( hmax[ tn + 1 ] - hmax[ tn - 1 ] ) * 365.0 / \
           ( @t[ tn + 1] - @t[tn - 1] )
     end
-      hdec[0] = hdec[1]; hdec[ @nt - 1] = hdec[ @nt - 2]
+      hdec[0] = hdec[1]; hdec[@nt - 1] = hdec[@nt - 2]
     return hdec
   end
 
@@ -259,11 +261,25 @@ end
     nc_fu.close
   end
 
+  def sshmax_set_with_ij
+    if @hmax == nil
+      pmax   = NArray.sfloat( @nt )
+        imax = NArray.sfloat( @nt )
+        jmax = NArray.sfloat( @nt )
+      for tn in 0..@nt-1
+        pmax[tn], imax[tn], jmax[tn] = \
+          na_max_with_index_k247( \
+            @p.cut( "z" => @z[0], "time" => @t[tn] ).val )
+      end
+      @hmax = pmax[0..-1] * @m_to_cm.val[0] / @grav.val[0]
+        @hmax_i = imax; @hmax_j = jmax
+    end # unless @hmax == nil
+  end
+
   def sshmax_get_with_ij
     pmax   = NArray.sfloat( @nt )
       imax = NArray.sfloat( @nt )
       jmax = NArray.sfloat( @nt )
-    ssh_now = NArray.sfloat( @nxp, @nyp )
     for tn in 0..@nt-1
       pmax[tn], imax[tn], jmax[tn] = \
         na_max_with_index_k247( \
@@ -471,6 +487,7 @@ def init_etc
   init_etc_additional_params
   init_teocavg
   init_casename
+  init_etc_defvar
 end # def init_etc
 
   # ToDo
@@ -527,6 +544,10 @@ end # def init_etc
       return self.class.prep_set_dpath( cname )
     end
 
+  def init_etc_defvar
+    @hmax = nil
+      @hmax_i = nil; @hmax_j = nil
+  end
 
 
 
@@ -1063,13 +1084,17 @@ class Test_K247_qgcm_E8 < MiniTest::Unit::TestCase
                       "yp"=>[-8.0, -4.0, 0.0, 4.0, 8.0] }, 0, 0 )
     assert true
   end
+  
+  def test_sshmax_set
+    @obj.sshmax_set_with_ij
+    assert_equal NArray, @obj.hmax.class
+  end
 
+=begin
   def test_energy_sum_ncwrite
     @obj.energy_sum_ncwrite
     assert true
   end
-
-=begin
   def test_energy_sum_all_region
     @obj.energy_sum_all_region
     assert true
