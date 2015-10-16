@@ -5,6 +5,10 @@
 require_relative "lib_k247_for_qgcm"
 
 
+
+
+
+
 class K247_qgcm_data
 
   attr_reader :nc_fn, :p, :q
@@ -1090,6 +1094,10 @@ class Test_K247_qgcm_E8 < MiniTest::Unit::TestCase
     assert_equal NArray, @obj.hmax.class
   end
 
+
+  def test_gp_proto
+    GPhys_Prototype.new
+  end
 =begin
   def test_energy_sum_ncwrite
     @obj.energy_sum_ncwrite

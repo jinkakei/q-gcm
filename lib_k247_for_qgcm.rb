@@ -19,6 +19,10 @@ def ary_get_include_index( ary, kwd )
   return idx
 end
 
+
+
+
+
 ##  NArray operator
 # ToDo
 #   - treat dimension other than 2D
