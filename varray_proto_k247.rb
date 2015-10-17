@@ -1,7 +1,6 @@
 # load libraries
 require "numru/gphys"
 include NumRu
-#require_relative "lib_k247_for_qgcm"
 
 # 2015-10-16
 # ToDo
@@ -10,18 +9,20 @@ include NumRu
 #   - 
 class VArray_Proto_K247
   attr_reader :nary, :attr, :name
+  attr_reader :grid
   
-  def initialize( nary=nil, attr=nil, name=nil )
+  def initialize( nary=nil, attr=nil, name=nil, grid=nil )
   # arguments == nil
     @nary  = NArray.sfloat(1)
-    @attr  = {}
+    @attr  = {"units"=>"none"}
     @name  = "undefined"
+    @grid  = nil
   # arguments != nil
     @nary  = chk_narray( nary ) unless nary == nil
     @attr  = chk_hash(   attr ) unless attr == nil
     @name  = chk_name(   name ) unless name == nil
+    @grid  = chk_grid(   grid ) unless grid == nil
 
-    #@grid
   end
 
     def chk_narray( var )
@@ -54,6 +55,15 @@ class VArray_Proto_K247
       end
     end
 
+    def chk_grid( grid )
+      if grid.class == Grid
+        return grid
+      else
+        puts "chk_grid: grid must be Grid class"
+        return false
+      end
+    end
+
   def chg_nary( na_new )
     @nary = chk_narray( na_new ) 
   end
@@ -77,6 +87,24 @@ class VArray_Proto_K247
     end
   end
 
+  def set_units( unit )
+    if unit.class == String
+      @attr["units"] = unit
+    else
+      puts "set_units: unit must be String"
+      return false
+    end
+  end
+
+  def set_long_name( lname )
+    if lname.class == String
+      @attr["long_name"] = lname
+    else
+      puts "set_long_name: long_name must be String"
+      return false
+    end
+  end
+
   def chg_name( name_new )
     @name = chk_name( name_new ) 
   end
@@ -92,7 +120,27 @@ class VArray_Proto_K247
   end
 
   def get_varray
-    return VArray.new( @na, @attr, @name )
+    return VArray.new( @nary, @attr, @name )
+  end
+
+  def get_grid
+    return Grid.new( Axis.new.set_pos( get_varray ) )
+  end
+
+  def get_gphys( grid=nil )
+    if grid.class != Grid and @grid == nil
+      puts "get_gphys: object does not have grid."
+      return false
+    end
+    return GPhys.new( grid, get_varray )
+  end
+
+  def netcdf_write( nc_fu, grid=nil )
+    if grid == nil and @grid == nil
+      return false
+    end
+    GPhys::NetCDF_IO.write( nc_fu, GPhys.new( grid, get_varray ) )
+    return true
   end
 end
 
@@ -112,6 +160,7 @@ class Test_VArray_Proto_K247 < MiniTest::Unit::TestCase
     #
   end
 
+
   def test_init_na
     assert_equal NArray, @obj.nary.class
   end
@@ -122,6 +171,10 @@ class Test_VArray_Proto_K247 < MiniTest::Unit::TestCase
 
   def test_init_name
     assert_equal String, @obj.name.class
+  end
+
+  def test_init_grid
+    refute @obj.grid
   end
 
   def test_chk_narraya
@@ -171,6 +224,10 @@ class Test_VArray_Proto_K247 < MiniTest::Unit::TestCase
       refute @obj.chk_name( 1 )
     end
 
+  def test_chk_grid
+    refute @obj.chk_grid( 1 )
+  end
+
   def test_add_attr
     @obj.add_attr( {"test"=>"tmp"} )
     assert_equal "tmp", @obj.attr["test"]
@@ -193,22 +250,70 @@ class Test_VArray_Proto_K247 < MiniTest::Unit::TestCase
     assert_equal hash_new, @obj.attr
   end
 
+    def test_set_units
+      @obj.set_units( "km" )
+      assert_equal "km", @obj.attr["units"]
+    end
+
+    def test_set_unitsb
+      refute @obj.set_units( 1.0 )
+    end
+
+    def test_set_long_name
+      @obj.set_long_name( "long_name" )
+      assert_equal "long_name", @obj.attr["long_name"]
+    end
+
+    def test_set_long_nameb
+      refute @obj.set_long_name( 1 )
+    end
+
   def test_chg_name
     name_new = "test"
     @obj.chg_name( name_new )
     assert_equal name_new, @obj.name
   end
 
-  def test_tmp
-    puts @obj.val
+  def test_val
+    assert_equal NArray, (@obj.val).class
   end
 
   def test_get_varray
     assert_equal VArray, ( @obj.get_varray  ).class
   end
 
-=begin
     def test_get_varrayb
+      va = @obj.get_varray
+      p va.val
+      p va.att_names
+      p va.name
+      assert true
+    end
+  
+  def test_get_grid
+    assert_equal Grid, ( @obj.get_grid ).class
+  end
+  
+  def test_get_gphys
+    refute @obj.get_gphys
+  end
+  
+    def test_get_gphysb
+      grid = @obj.get_grid
+      assert_equal GPhys, ( @obj.get_gphys( grid ) ).class 
+    end
+  
+  def test_netcdf_write
+    nc_fu = NetCDF.create( "./test.nc" )
+    grid = @obj.get_grid
+    @obj.chg_name( "var")
+      # var name must be different from grid name
+    ret = @obj.netcdf_write( nc_fu, grid )
+    nc_fu.close
+    assert ret
+  end
+=begin
+    def test_get_varrayc
       @obj.chg_nary( 1.0 )
       va = @obj.get_varray
       puts va.inspect

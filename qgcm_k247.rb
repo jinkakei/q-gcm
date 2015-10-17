@@ -258,7 +258,10 @@ end
   def sshmax_write
     hmax, imax, jmax = sshmax_get_with_ij
     grid_t = Grid.new( Axis.new.set_pos( @tcor ) )
-    nc_fu = NetCDF.create( "./test_tmp.nc" )
+    out_fname = "#{@dname}hmax_info.nc" 
+    puts "Output hmax information to #{out_fname}"
+    puts "  case: #{@gcname}-#{@cname}"
+    nc_fu = NetCDF.create( out_fname )
       va_h = VArray.new( hmax, {"units"=>"cm", "long_name"=>"ssh_max"}, "hmax")
       gp_h = GPhys.new( grid_t, va_h )
       GPhys::NetCDF_IO.write( nc_fu, gp_h )
@@ -312,14 +315,14 @@ end
 
 ## - instance methods for check
 # contents ( 2015-09-04 )
-##  chk_energy_avg_stdout( input=nil )
-##  chk_energy_avg_ncout(  input=nil )
+##  chk_monit_energy_stdout( input=nil )
+##  chk_monit_energy_ncout(  input=nil )
   
   # Check Area averaged energy
   # ToDo
-  #   - zonally & meridionally averaged energies ( add new method? )
   #   - update for 3 or more layer @ 2015-10-12
-  def chk_energy_avg_stdout( input=nil )
+  #   - sophisticate format
+  def chk_monit_energy_stdout( input=nil )
     puts "Check Area averaged energy (from monit.nc)"
     puts "  case: #{@gcname}-#{@cname}"
     puts "  te: toal, pe: potential, ke: kinetic energy"; puts
@@ -346,7 +349,7 @@ end
     puts "  ke / pe"
     puts "      inital                  : #{ ke.val[0, 0] / pe.val[0, 0] }"
     puts "      final                   : #{ ke.val[0,-1] / pe.val[0,-1] }"
-  end # def chk_energy_avg_stdout( input=nil)
+  end # def chk_monit_energy_stdout( input=nil)
 
   # Output Area averaged energy to NetCDF file
   # ToDo
@@ -354,8 +357,8 @@ end
   #     ( another method)
   #   - refactoring ( abstract method )
   #   - update for 3 or more layer @ 2015-10-12
-  def chk_energy_avg_ncout( input=nil)
-    out_fname = "#{@dname}energy_check.nc" 
+  def chk_monit_energy_ncout( input=nil)
+    out_fname = "#{@dname}monit_energy.nc" 
     puts "Output area averaged energy to #{out_fname}"
     puts "  case: #{@gcname}-#{@cname}"
     ke = @keocavg
@@ -382,7 +385,7 @@ end
       GPhys::NetCDF_IO.write( nc_fu, \
               sum_pe.chg_gphys_k247({"name"=>"pe_sum"}) )
     nc_fu.close
-  end # def chk_energy_avg_ncout( input=nil)
+  end # def chk_monit_energy_ncout( input=nil)
 
 
 
@@ -1094,11 +1097,15 @@ class Test_K247_qgcm_E8 < MiniTest::Unit::TestCase
     assert_equal NArray, @obj.hmax.class
   end
 
+  #def
+  #  #  
+  #end
+
+=begin
 
   def test_gp_proto
     GPhys_Prototype.new
   end
-=begin
   def test_energy_sum_ncwrite
     @obj.energy_sum_ncwrite
     assert true
