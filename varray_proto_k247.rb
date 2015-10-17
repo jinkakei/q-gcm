@@ -1,44 +1,27 @@
 # load libraries
-require_relative "lib_k247_for_qgcm"
+require "numru/gphys"
+include NumRu
+#require_relative "lib_k247_for_qgcm"
 
 # 2015-10-16
 # ToDo
-#   - set Grid
-#   - restore GPhys
-#   - setup GPhys and NetCDF write
+#   - restore VArray
 #   - 
 #   - 
-class GPhys_Proto_K247
-  attr_reader :na, :attr, :name
+class VArray_Proto_K247
+  attr_reader :nary, :attr, :name
   
   def initialize( nary=nil, attr=nil, name=nil )
-  # arg == nil
-    @na    = NArray.sfloat(1)
+  # arguments == nil
+    @nary  = NArray.sfloat(1)
     @attr  = {}
     @name  = "undefined"
-  # arg != nil
-    @na    = chk_narray( nary ) unless nary == nil
+  # arguments != nil
+    @nary  = chk_narray( nary ) unless nary == nil
     @attr  = chk_hash(   attr ) unless attr == nil
     @name  = chk_name(   name ) unless name == nil
 
     #@grid
-=begin
-    if nary == nil
-      @na    = NArray.sfloat(1)
-    else
-      @na    = chk_narray( nary )
-    end
-    if attr == nil
-      @attr  = {}
-    else
-      @attr  = chk_hash( attr )
-    end
-    if name == nil
-      @name  = "unknown"
-    else
-      @name  = chk_name( name )
-    end
-=end
   end
 
     def chk_narray( var )
@@ -71,8 +54,8 @@ class GPhys_Proto_K247
       end
     end
 
-  def chg_na( na_new )
-    @na = chk_narray( na_new ) 
+  def chg_nary( na_new )
+    @nary = chk_narray( na_new ) 
   end
 
   def chg_attr( attr_new )
@@ -99,12 +82,16 @@ class GPhys_Proto_K247
   end
 
   def show
-    puts @na.inspect
+    puts @nary.inspect
     puts @attr.inspect
     puts @name.inspect
   end
 
-  def make_varray
+  def val
+    @nary
+  end
+
+  def get_varray
     return VArray.new( @na, @attr, @name )
   end
 end
@@ -113,11 +100,12 @@ end
 
 if $0 == __FILE__ then
 require 'minitest/autorun'
+require '~/lib_k247/minitest_unit_k247'
 
-class Test_GPhys_Proto_K247 < MiniTest::Unit::TestCase
+class Test_VArray_Proto_K247 < MiniTest::Unit::TestCase
   def setup
-  #  @obj = GPhys_Proto_K247.new( NArray.sfloat(1).indgen )
-    @obj = GPhys_Proto_K247.new
+  #  @obj = VArray_Proto_K247.new( NArray.sfloat(1).indgen )
+    @obj = VArray_Proto_K247.new
   end
 
   def teardown
@@ -125,7 +113,7 @@ class Test_GPhys_Proto_K247 < MiniTest::Unit::TestCase
   end
 
   def test_init_na
-    assert_equal NArray, @obj.na.class
+    assert_equal NArray, @obj.nary.class
   end
 
   def test_init_attr
@@ -137,25 +125,25 @@ class Test_GPhys_Proto_K247 < MiniTest::Unit::TestCase
   end
 
   def test_chk_narraya
-    na = NArray.sfloat(1)
-    obj = GPhys_Proto_K247.new( na )
-    assert_equal NArray, obj.na.class
+    nary = NArray.sfloat(1)
+    obj = VArray_Proto_K247.new( nary )
+    assert_equal NArray, obj.nary.class
   end
 
     def test_chk_narrayb
-      obj = GPhys_Proto_K247.new( 1.0 )
-      assert_equal NArray, obj.na.class
+      obj = VArray_Proto_K247.new( 1.0 )
+      assert_equal NArray, obj.nary.class
     end
   
     def test_chk_narrayc
-      obj = GPhys_Proto_K247.new( 1 )
-      assert_equal NArray, obj.na.class
+      obj = VArray_Proto_K247.new( 1 )
+      assert_equal NArray, obj.nary.class
     end
   
     def test_chk_narrayd
       na_miss = NArrayMiss.sfloat( 1 )
-      obj = GPhys_Proto_K247.new( na_miss )
-      assert_equal NArrayMiss, obj.na.class
+      obj = VArray_Proto_K247.new( na_miss )
+      assert_equal NArrayMiss, obj.nary.class
     end
   
     def test_chk_narraye
@@ -163,8 +151,8 @@ class Test_GPhys_Proto_K247 < MiniTest::Unit::TestCase
     end
   
     def test_chk_narrayf
-      obj = GPhys_Proto_K247.new( "str" )
-      refute obj.na
+      obj = VArray_Proto_K247.new( "str" )
+      refute obj.nary
     end
 
   def test_chk_hash    
@@ -194,9 +182,9 @@ class Test_GPhys_Proto_K247 < MiniTest::Unit::TestCase
     end
 
   def test_chg_na
-    @obj.chg_na( 1.0 )
+    @obj.chg_nary( 1.0 )
     na1 = NArray.to_na( [1.0] )
-    assert_equal na1, @obj.na
+    assert_equal na1, @obj.nary
   end
 
   def test_chg_attr
@@ -211,14 +199,18 @@ class Test_GPhys_Proto_K247 < MiniTest::Unit::TestCase
     assert_equal name_new, @obj.name
   end
 
-  def test_make_varray
-    assert_equal VArray, ( @obj.make_varray  ).class
+  def test_tmp
+    puts @obj.val
+  end
+
+  def test_get_varray
+    assert_equal VArray, ( @obj.get_varray  ).class
   end
 
 =begin
-    def test_make_varrayb
-      @obj.chg_na( 1.0 )
-      va = @obj.make_varray
+    def test_get_varrayb
+      @obj.chg_nary( 1.0 )
+      va = @obj.get_varray
       puts va.inspect
     end
 =end
