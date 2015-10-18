@@ -112,8 +112,8 @@ program k247_make_restart_qgcm
         double precision ssh_dist(nxpo, nypo) ! nomodon
 ! for eddy pair @2015-07-31
         integer j_dist ! calculat from cnt_dist
-        !double precision,parameter:: cnt_dist = 0.0d0 ! rate of l_efold
-        double precision,parameter:: cnt_dist = 0.5d0 ! rate of l_efold ! nomodon
+        double precision,parameter:: cnt_dist = 0.0d0 ! rate of l_efold
+        !double precision,parameter:: cnt_dist = 0.5d0 ! rate of l_efold ! nomodon
         !double precision,parameter:: cnt_dist = 0.75d0 ! rate of l_efold
         !double precision,parameter:: cnt_dist = 1.0d0 ! rate of l_efold
         double precision,parameter:: pair_amp = 0.0d0 ! rate of ssh_amp ! nomodon

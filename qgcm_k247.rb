@@ -242,30 +242,6 @@ end
 
 
 
-def sshdec_tmp
-  hdec = sshdec_get
-  grid_t = Grid.new( Axis.new.set_pos( @tcor ) )
-  nc_fu = NetCDF.create( "#{@dname}sshdec_etc.nc" )
-    va_h = VArray.new( hdec, {"units"=>"cm/year", "long_name"=>"ssh_decay"}, "hdec")
-    gp_h = GPhys.new( grid_t, va_h )
-    GPhys::NetCDF_IO.write( nc_fu, gp_h )
-  nc_fu.close
-end
-
-  def sshdec_get( hmax=nil )
-    hmax, hmax_i, hmax_j = sshmax_get_with_ij if hmax == nil
-    hdec = NArray.sfloat( @nt )
-    for tn in 1..@nt-2
-    # cm/day
-    #  hdec[tn] = ( hmax[ tn + 1 ] - hmax[ tn - 1 ] ) / \
-    # cm/year
-      hdec[tn] = ( hmax[ tn + 1 ] - hmax[ tn - 1 ] ) * 365.0 / \
-          ( @t[ tn + 1] - @t[tn - 1] )
-    end
-      hdec[0] = hdec[1]; hdec[@nt - 1] = hdec[@nt - 2]
-    return hdec
-  end
-
 
 # ToDo: use varray_proto in submethods
 def sshmax_etc_ncout
@@ -328,7 +304,9 @@ end
 
   def hmax_ncwrite( nc_fu )
     exit_with_msg("hmax must be prepaired") if @hmax == nil
-    va = VArray.new( @hmax, {"units"=>"cm", "long_name"=>"SSH_Max"}, "hmax")
+    va = VArray.new( @hmax, \
+                    {"units"=>"cm", "long_name"=>"SSH_Max"}, \
+                    "hmax")
     gp = GPhys.new( @grid_t, va )
     GPhys::NetCDF_IO.write( nc_fu, gp )
   end
@@ -1157,16 +1135,6 @@ class Test_K247_qgcm_E8 < MiniTest::Unit::TestCase
     hmax, hmax_i, hmax_j = @obj.sshmax_get_with_ij
     assert_equal NArray, hmax.class
   end
-
-  def test_sshdec_get
-    hdec = @obj.sshdec_get
-    assert_equal NArray, hdec.class
-  end
-
-#  def test_sshdec_get_tmp
-#    @obj.sshdec_tmp
-#    assert true
-#  end
   
   def test_sshmax_set
     @obj.sshmax_set_with_ij
@@ -1176,10 +1144,6 @@ class Test_K247_qgcm_E8 < MiniTest::Unit::TestCase
   def test_sshmax_etc_ncout
     assert @obj.sshmax_etc_ncout
   end
-#  def test_uvgeooc_calc
-#    @obj.uvgeooc_calc_wrap
-#    assert true
-#  end
 
   def test_ke2d_calc
     @obj.ke2d_calc( { "xp"=>[-8.0, -4.0, 0.0, 4.0, 8.0], \
