@@ -82,7 +82,7 @@ end # initialize
 ##    -- sshdec_get
 ##  - ( sshmax )
 ##    -- sshmax_get_with_ij
-##    -- sshmax_write
+##    -- sshmax_etc_ncout
 ##  - ( ugeos )
 ##    -- uvgeooc_calc_wrap( ij_range, k, t )
 ##    -- uvgeooc2d_calc( po2d )
@@ -94,6 +94,17 @@ end # initialize
 ##  - 
 ##  - 
 ##  - 
+
+# nary: NArray.sfloat( @nt )
+def calc_grad_t( nary ) 
+  grad = NArray.sfloat( @nt )
+  for tn in 1..@nt-2
+    grad[tn] = ( nary[ tn + 1 ] - nary[ tn - 1 ] ) / \
+                ( @t[ tn + 1] - @t[tn - 1] )
+  end
+    grad[0] = grad[1]; grad[@nt - 1] = grad[@nt - 2]
+  return grad
+end
 
 #here
 def energy_sum_ncwrite
@@ -241,8 +252,8 @@ def sshdec_tmp
   nc_fu.close
 end
 
-  def sshdec_get
-    hmax, imax, jmax = sshmax_get_with_ij
+  def sshdec_get( hmax=nil )
+    hmax, hmax_i, hmax_j = sshmax_get_with_ij if hmax == nil
     hdec = NArray.sfloat( @nt )
     for tn in 1..@nt-2
     # cm/day
@@ -255,45 +266,119 @@ end
     return hdec
   end
 
-  def sshmax_write
-    hmax, imax, jmax = sshmax_get_with_ij
-    grid_t = Grid.new( Axis.new.set_pos( @tcor ) )
-    out_fname = "#{@dname}hmax_info.nc" 
-    puts "Output hmax information to #{out_fname}"
-    puts "  case: #{@gcname}-#{@cname}"
-    nc_fu = NetCDF.create( out_fname )
-      va_h = VArray.new( hmax, {"units"=>"cm", "long_name"=>"ssh_max"}, "hmax")
-      gp_h = GPhys.new( grid_t, va_h )
-      GPhys::NetCDF_IO.write( nc_fu, gp_h )
-    nc_fu.close
+
+# ToDo: use varray_proto in submethods
+def sshmax_etc_ncout
+  sshmax_set_with_ij
+  out_fname = "#{@dname}sshmax_etc.nc" 
+  puts "Output hmax information to #{out_fname}"
+  puts "  case: #{@gcname}-#{@cname}"
+  nc_fu = NetCDF.create( out_fname )
+    hmax_ncwrite_wrap( nc_fu )
+    hdec_ncwrite_wrap( nc_fu )
+  nc_fu.close
+  return true # for test
+end
+
+  def hdec_ncwrite_wrap( nc_fu )
+    hdec_ncwrite( nc_fu )
+    zspd_ncwrite( nc_fu )
+    mspd_ncwrite( nc_fu )
+  end
+
+  def hdec_ncwrite( nc_fu )
+    exit_with_msg("hmax must be prepaired") if @hmax == nil
+    hdec = calc_grad_t( @hmax ) * 365.0
+      # cm/day -> cm/year
+    va = VArray.new( hdec, \
+                    {"units"=>"cm/year", \
+                     "long_name"=>"SSH_Max_Decay_Rate"}, \
+                    "hdec")
+    gp = GPhys.new( @grid_t, va )
+    GPhys::NetCDF_IO.write( nc_fu, gp )
+  end
+
+  def zspd_ncwrite( nc_fu )
+    exit_with_msg("hmax_i must be prepaired") if @hmax_i == nil
+    hmax_x = @xp[ @hmax_i ]
+    zspd = calc_grad_t( hmax_x ) * @km_to_cm.val[0] / @day_to_sec.val[0]
+    va = VArray.new( zspd, \
+                    {"units"=>"cm/s", "long_name"=>"SSH_Max_Zonal_Speed"}, \
+                     "zspd")
+    gp = GPhys.new( @grid_t, va )
+    GPhys::NetCDF_IO.write( nc_fu, gp )
+  end
+
+  def mspd_ncwrite( nc_fu )
+    exit_with_msg("hmax_j must be prepaired") if @hmax_j == nil
+    hmax_y = @yp[ @hmax_j ]
+    mspd = calc_grad_t( hmax_y ) * @km_to_cm.val[0] / @day_to_sec.val[0]
+    va = VArray.new( mspd, \
+                    {"units"=>"cm/s", "long_name"=>"SSH_Max_Meridional_Speed"}, \
+                     "mspd")
+    gp = GPhys.new( @grid_t, va )
+    GPhys::NetCDF_IO.write( nc_fu, gp )
+  end
+
+  def hmax_ncwrite_wrap( nc_fu )
+    hmax_ncwrite(   nc_fu )
+    hmax_x_ncwrite( nc_fu )
+    hmax_y_ncwrite( nc_fu )
+  end
+
+  def hmax_ncwrite( nc_fu )
+    exit_with_msg("hmax must be prepaired") if @hmax == nil
+    va = VArray.new( @hmax, {"units"=>"cm", "long_name"=>"SSH_Max"}, "hmax")
+    gp = GPhys.new( @grid_t, va )
+    GPhys::NetCDF_IO.write( nc_fu, gp )
+  end
+
+  def hmax_x_ncwrite( nc_fu )
+    exit_with_msg("hmax_i must be prepaired") if @hmax_i == nil
+    hmax_x = @xp[ @hmax_i ]
+    va = VArray.new( hmax_x, \
+                    {"units"=>"km", "long_name"=>"SSH_Max_Position_X"}, \
+                     "hmax_x")
+    gp = GPhys.new( @grid_t, va )
+    GPhys::NetCDF_IO.write( nc_fu, gp )
+  end
+
+  def hmax_y_ncwrite( nc_fu )
+    exit_with_msg("hmax_j must be prepaired") if @hmax_j == nil
+    hmax_y = @yp[ @hmax_j ]
+    va = VArray.new( hmax_y, \
+                    {"units"=>"km", "long_name"=>"SSH_Max_Position_Y"}, \
+                     "hmax_y")
+    gp = GPhys.new( @grid_t, va )
+    GPhys::NetCDF_IO.write( nc_fu, gp )
   end
 
   def sshmax_set_with_ij
     if @hmax == nil
       pmax   = NArray.sfloat( @nt )
-        imax = NArray.sfloat( @nt )
-        jmax = NArray.sfloat( @nt )
+        hmax_i = NArray.sfloat( @nt )
+        hmax_j = NArray.sfloat( @nt )
       for tn in 0..@nt-1
-        pmax[tn], imax[tn], jmax[tn] = \
+        pmax[tn], hmax_i[tn], hmax_j[tn] = \
           na_max_with_index_k247( \
             @p.cut( "z" => @z[0], "time" => @t[tn] ).val )
       end
       @hmax = pmax[0..-1] * @m_to_cm.val[0] / @grav.val[0]
-        @hmax_i = imax; @hmax_j = jmax
+        @hmax_i = hmax_i; @hmax_j = hmax_j
     end # unless @hmax == nil
   end
 
   def sshmax_get_with_ij
     pmax   = NArray.sfloat( @nt )
-      imax = NArray.sfloat( @nt )
-      jmax = NArray.sfloat( @nt )
+      hmax_i = NArray.sfloat( @nt )
+      hmax_j = NArray.sfloat( @nt )
     for tn in 0..@nt-1
-      pmax[tn], imax[tn], jmax[tn] = \
+      pmax[tn], hmax_i[tn], hmax_j[tn] = \
         na_max_with_index_k247( \
           @p.cut( "z" => @z[0], "time" => @t[tn] ).val )
     end
     hmax = pmax[0..-1] * @m_to_cm.val[0] / @grav.val[0]
-    return hmax, imax, jmax
+    return hmax, hmax_i, hmax_j
   end
 =begin
   def sshmax_get_with_ij
@@ -301,15 +386,15 @@ end
   #  ssh = ( @p.cut( "z" => @z[0] ) * @m_to_cm / @grav ).val
     @ssh = @p.cut( "z" => @z[0] ) * @m_to_cm / @grav
     hmax   = NArray.sfloat( @nt )
-      imax = NArray.sfloat( @nt )
-      jmax = NArray.sfloat( @nt )
+      hmax_i = NArray.sfloat( @nt )
+      hmax_j = NArray.sfloat( @nt )
     for tn in 0..@nt-1
-      hmax[tn], imax[tn], jmax[tn] = \
+      hmax[tn], hmax_i[tn], hmax_j[tn] = \
         na_max_with_index_k247( @ssh.cut( "time" => @t[tn]).val )
-      #puts hmax[tn] #, imax[tn], jmax[tn]
+      #puts hmax[tn] #, hmax_i[tn], hmax_j[tn]
     end
 
-    return hmax, imax, jmax
+    return hmax, hmax_i, hmax_j
   end
 =end
 
@@ -460,6 +545,13 @@ end
     nary[0] = 100.0
     @m_to_cm = VArray.new( nary.clone, { "units" => "m-1.cm" }, "m_to_cm" )
 
+    nary[0] = 1000.0 * 100.0
+    @km_to_cm = VArray.new( nary.clone, { "units" => "km-1.cm" }, "km_to_cm" )
+
+    nary[0] = 24.0 * 3600.0
+    @day_to_sec = VArray.new( nary.clone, { "units" => "day-1.s" }, "day_to_sec" )
+
+
   end
 
   def init_params_zdim
@@ -508,6 +600,7 @@ end # def init_etc
     @zcor = @p.coord("z"); @z = @zcor.val; @nz = @z.length
     @zicor = @et2moc.coord("zi"); @zi = @zicor.val; @nzi = @zi.length
     @tcor = @p.coord("time"); @t = @tcor.val; @nt = @t.length
+      @grid_t = Grid.new( Axis.new.set_pos( @tcor) )
     @tmcor = @et2moc.coord("time_monitor"); @tm = @tmcor.val; @ntm = @tm.length
   end # def init_coord
 
@@ -1061,7 +1154,7 @@ class Test_K247_qgcm_E8 < MiniTest::Unit::TestCase
   end
 
   def test_sshmax_get_with_ij
-    hmax, imax, jmax = @obj.sshmax_get_with_ij
+    hmax, hmax_i, hmax_j = @obj.sshmax_get_with_ij
     assert_equal NArray, hmax.class
   end
 
@@ -1074,7 +1167,15 @@ class Test_K247_qgcm_E8 < MiniTest::Unit::TestCase
 #    @obj.sshdec_tmp
 #    assert true
 #  end
+  
+  def test_sshmax_set
+    @obj.sshmax_set_with_ij
+    assert_equal NArray, @obj.hmax.class
+  end
 
+  def test_sshmax_etc_ncout
+    assert @obj.sshmax_etc_ncout
+  end
 #  def test_uvgeooc_calc
 #    @obj.uvgeooc_calc_wrap
 #    assert true
@@ -1090,11 +1191,6 @@ class Test_K247_qgcm_E8 < MiniTest::Unit::TestCase
     @obj.pe2d_calc( { "xp"=>[-8.0, -4.0, 0.0, 4.0, 8.0], \
                       "yp"=>[-8.0, -4.0, 0.0, 4.0, 8.0] }, 0, 0 )
     assert true
-  end
-  
-  def test_sshmax_set
-    @obj.sshmax_set_with_ij
-    assert_equal NArray, @obj.hmax.class
   end
 
   #def
