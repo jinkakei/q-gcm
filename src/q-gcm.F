@@ -1193,6 +1193,13 @@ c   atmospheric mixed layer thickness
         print *,' '
 #endif /* no_oml_k247 */
 
+#ifdef ocnc_avg_k247
+      lomid(1) = 0.5d-3*hoc(1)
+      do i=2,nlo
+        lomid(i) = lomid(i-1) + 0.5d-3*( hoc(i-1) + hoc(i) )
+      enddo
+#endif /* ocnc_avg_k247 */
+
       do 1000 nt=nsteps0+1,nsteps
 
         if ( mod(nt,nstr).eq.1 ) then
@@ -1431,9 +1438,8 @@ c   atmospheric mixed layer thickness
 #  ifndef atmos_only
         if ( mod(ntdone,noutoc).eq.0 ) then
           call ocnc_out (nsko, outfloc)
-
 #ifdef ocnc_avg_k247
-        call ocnc_avginit_k247( nt )
+        call ocnc_avginit_k247( nt, outdir )
 #endif /* ocnc_avg_k247 */
         endif
 #  endif /* atmos_only */

@@ -19,7 +19,38 @@ def ary_get_include_index( ary, kwd )
   return idx
 end
 
+def exec_command( cmd )
+  #print "\n"
+  ret = system(cmd)
+  puts "#{ret} : #{cmd}"
+  #print "\n\n"
+end
 
+def popen3_wrap( cmd )
+  require "open3"
+
+  puts "popen3: #{cmd}"
+  o_str = Array(1); e_str = Array(1)
+  Open3.popen3( cmd ) do | stdin, stdout, stderr, wait_thread|
+    stdout.each_with_index do |line,n| o_str[n] = line end
+    stderr.each_with_index do |line,n| e_str[n] = line end
+  end
+  ret = {"key_meaning"=>"i: stdin, o: stdout, e: stderr, w: wait_thread"}
+    ret["o"] = o_str; ret["e"] = e_str
+  return ret
+end
+
+  def show_stdoe( p3w_ret )
+    puts "  STDOUT:"
+      p3w_ret["o"].each do |line| puts "  #{line}" end
+    puts "  STDERR:"
+      p3w_ret["e"].each do |line| puts "  #{line}" end
+  end
+
+  
+def time_now_str_sec
+  return Time.now.strftime("%Y%m%d_%H%M_%S")
+end
 
 
 

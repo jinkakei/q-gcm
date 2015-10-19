@@ -104,6 +104,10 @@ c
 #endif /* #ifdef sponge_layer_k247 */
 *     r_spl = a ramp function for Sponge Layer (A.9)
 
+#ifdef ocnc_avg_k247
+      double precision lomid(nlo)
+#endif /* ocnc_avg_k247 */
+
       END MODULE occonst
 c
 c***********************************************************************

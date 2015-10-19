@@ -15,7 +15,8 @@ class Admin_work_k247
     check_subdirs
     @cp_files = ["../src/input.params", "../exec_qgcm.rb"]
     @link_files = ["*.F", "*.f", "make.macro", "make.config", \
-                   "Makefile", "cntl_q-gcm", "*.F90", "fftpack" ]
+                   "Makefile", "cntl_q-gcm", "*.F90", "fftpack", \
+                   "../lib_k247_for_qgcm.rb"]
       # CAUTION!: fftpack is directory, 
       #           "$ rm -rf fftpack/" is remove original directory
       #           "$ rm -f fftpack" is remove symbolic link file

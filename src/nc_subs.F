@@ -1927,7 +1927,7 @@ c
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #ifdef ocnc_avg_k247
-      SUBROUTINE ocnc_avginit_k247( nt )
+      SUBROUTINE ocnc_avginit_k247( nt, outdir )
 
 *     based on ocnc_init
 *     Initialises the files ocpo_avg_nt*.nc (p-grid, id = )
@@ -1937,7 +1937,7 @@ c
 #ifndef atmos_only
       USE occonst
 #endif /* not atmos_only */
-      USE timinfo, ONLY : nstr
+      USE timinfo, ONLY : nstr,secday
 
       IMPLICIT NONE
 
@@ -1947,6 +1947,9 @@ c
 *
 *     Subroutine arguments
       integer nt
+      character (len=80) :: outdir
+*     appendix of Subroutine arguments
+      integer lenod
 
 #ifdef use_netcdf
 #  ifndef atmos_only
@@ -1955,22 +1958,91 @@ c
       character (len=*), parameter :: subnam = 'ocnc_avginit_k247'
 
 !!  netCDF variables used locally
-!      integer ncstat, timopdim, xopdim, yopdim, lodim
-!      integer timotdim, axodims, odims(3), podims(4)
-!      integer xop_id, yop_id, lo_id
+      integer ncstat
+      integer xopdim, yopdim, lodim, axodims, odims(3)
+      integer xop_id, yop_id, lo_id
+      integer po_id
+      integer nf_id
 
 !!  Other variables used locally
 !      double precision xo(nxpo),yo(nypo),tmp(nlo)
 !      integer i, iwk, mwk
-      character(12) :: now_sec
-      character(256) :: nc_fname
+!      character(12) :: now_time ! [sec]
+      character(6) :: now_time
+!      character(256) :: nc_fname
 
-      print *,'creating file ocpo_avg_nt*.nc'
-      print *, nt
-      write(now_sec,'(I12.12)') nint(dto * nt / nstr)
-      print *, now_sec
-      nc_fname = 'ocavg_sec'//now_sec//'.nc'
-      print *, nc_fname
+      write(now_time,'(I6.6)') nint( dto * nt / ( nstr * secday ) )
+!      write(now_time,'(I12.12)') nint(dto * nt / nstr)
+
+      lenod = index(outdir, '   ') - 1
+      ncstat = nf_create (
+     &           outdir(1:lenod)//'/avg/ocavg_'//now_time//'day.nc',
+     &                    NF_CLOBBER, nf_id)
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+
+      ncstat = nf_def_dim(nf_id, 'xp', nxpo, xopdim)
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+      ncstat = nf_def_dim(nf_id, 'yp', nypo, yopdim)
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+      ncstat = nf_def_dim(nf_id,  'z',  nlo, lodim)
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+
+!!  'xp' which stores x gridpoints (p-grid)
+      axodims = xopdim
+      ncstat = nf_def_var(nf_id, 'xp', NF_FLOAT, 1, axodims, xop_id)
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+      ncstat = nf_put_att_text(nf_id, xop_id, 'units', 2, 'km')
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+      ncstat = nf_put_att_text(nf_id, xop_id, 'long_name',
+     &            21, 'Ocean X axis (p-grid)')
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+!!  'yp' which stores y gridpoints (p-grid)
+      axodims = yopdim
+      ncstat = nf_def_var(nf_id, 'yp', NF_FLOAT, 1, axodims, yop_id)
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+      ncstat = nf_put_att_text(nf_id, yop_id, 'units', 2, 'km')
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+      ncstat = nf_put_att_text(nf_id, yop_id, 'long_name',
+     &            21, 'Ocean Y axis (p-grid)')
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+
+!!  Define a 1-dimensional variable called 'z'
+!!  to store layer thicknesses; p-grid only
+      axodims = lodim
+      ncstat = nf_def_var(nf_id, 'z', NF_FLOAT, 1, axodims, lo_id)
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+      ncstat = nf_put_att_text(nf_id, lo_id, 'units', 2, 'km')
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+      ncstat = nf_put_att_text(nf_id, lo_id, 'long_name',
+     &            26, 'Ocean mid-layer depth axis')
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+
+      odims(1) = xopdim
+      odims(2) = yopdim
+      odims(3) = lodim
+      ncstat = nf_def_var(nf_id, 'p', NF_FLOAT, 3, odims, po_id)
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+      ncstat = nf_put_att_text(nf_id, po_id, 'units', 6, 'm2.s-2')
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+      ncstat = nf_put_att_text(nf_id, po_id, 'long_name',
+     &              22, 'Ocean dynamic pressure')
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+
+      ncstat = nf_enddef(nf_id)
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+
+! put var
+      ncstat = nf_put_vara_double(nf_id, xop_id, 1, nxpo, 1.0d-3*xpo)
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+      ncstat = nf_put_vara_double(nf_id, yop_id, 1, nypo, 1.0d-3*ypo)
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+      ncstat = nf_put_var_double(nf_id, lo_id, lomid)
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+#ifdef NOWCUT
+#endif
+
+      ncstat = nf_close( nf_id )
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
 
 #  endif /* not atmos_only */
 #endif /* use_netcdf */
