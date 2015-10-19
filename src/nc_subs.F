@@ -41,6 +41,10 @@ c
       PUBLIC :: handle_err, ocnc_init, atnc_init, ocnc_out,
      &          atnc_out, resave_nc, restart_nc
 
+#ifdef ocnc_avg_k247
+      PUBLIC :: ocnc_avginit_k247
+#endif /* ocnc_avg_k247 */
+
       integer, PUBLIC, SAVE :: restid
 
 #ifdef use_netcdf
@@ -1919,6 +1923,61 @@ c
 #endif /* use_netcdf */
 
       END SUBROUTINE restart_nc
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+#ifdef ocnc_avg_k247
+      SUBROUTINE ocnc_avginit_k247( nt )
+
+*     based on ocnc_init
+*     Initialises the files ocpo_avg_nt*.nc (p-grid, id = )
+
+*     Modules
+      USE parameters
+#ifndef atmos_only
+      USE occonst
+#endif /* not atmos_only */
+      USE timinfo, ONLY : nstr
+
+      IMPLICIT NONE
+
+#ifdef use_netcdf
+      INCLUDE 'netcdf.inc'
+#endif /* use_netcdf */
+*
+*     Subroutine arguments
+      integer nt
+
+#ifdef use_netcdf
+#  ifndef atmos_only
+
+*     Local parameters
+      character (len=*), parameter :: subnam = 'ocnc_avginit_k247'
+
+!!  netCDF variables used locally
+!      integer ncstat, timopdim, xopdim, yopdim, lodim
+!      integer timotdim, axodims, odims(3), podims(4)
+!      integer xop_id, yop_id, lo_id
+
+!!  Other variables used locally
+!      double precision xo(nxpo),yo(nypo),tmp(nlo)
+!      integer i, iwk, mwk
+      character(12) :: now_sec
+      character(256) :: nc_fname
+
+      print *,'creating file ocpo_avg_nt*.nc'
+      print *, nt
+      write(now_sec,'(I12.12)') nint(dto * nt / nstr)
+      print *, now_sec
+      nc_fname = 'ocavg_sec'//now_sec//'.nc'
+      print *, nc_fname
+
+#  endif /* not atmos_only */
+#endif /* use_netcdf */
+
+      END SUBROUTINE ocnc_avginit_k247
+#endif /* ocnc_avg_k247 */
+
 c
 c***********************************************************************
 *
