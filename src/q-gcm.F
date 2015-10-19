@@ -1439,7 +1439,7 @@ c   atmospheric mixed layer thickness
         if ( mod(ntdone,noutoc).eq.0 ) then
           call ocnc_out (nsko, outfloc)
 #ifdef ocnc_avg_k247
-        call ocnc_avginit_k247( nt, outdir )
+        call ocnc_avgout_k247( nt, outdir )
 #endif /* ocnc_avg_k247 */
         endif
 #  endif /* atmos_only */

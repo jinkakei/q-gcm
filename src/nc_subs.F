@@ -42,7 +42,7 @@ c
      &          atnc_out, resave_nc, restart_nc
 
 #ifdef ocnc_avg_k247
-      PUBLIC :: ocnc_avginit_k247
+      PUBLIC :: ocnc_avginit_k247, ocnc_avgout_k247
 #endif /* ocnc_avg_k247 */
 
       integer, PUBLIC, SAVE :: restid
@@ -63,6 +63,11 @@ c
       integer, PUBLIC, SAVE :: ocpid, octid
       integer, PRIVATE, SAVE :: sst_id, po_id, qo_id, eko_id, ho_id,
      &                          txo_id, tyo_id, timop_id, timot_id
+
+#    ifdef ocnc_avg_k247
+      integer, PRIVATE, SAVE :: poavg_id
+#    endif /* ocnc_avg_k247 */
+
 #  endif /* not atmos_only */
 
 #endif /* use_netcdf */
@@ -1927,8 +1932,11 @@ c
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 #ifdef ocnc_avg_k247
-      SUBROUTINE ocnc_avginit_k247( nt, outdir )
-
+      SUBROUTINE ocnc_avgout_k247( nt, outdir )
+! ToDo
+!     - remove unnecessary variables 
+!     -  
+ 
 *     based on ocnc_init
 *     Initialises the files ocpo_avg_nt*.nc (p-grid, id = )
 
@@ -1936,6 +1944,7 @@ c
       USE parameters
 #ifndef atmos_only
       USE occonst
+      USE ocstate
 #endif /* not atmos_only */
       USE timinfo, ONLY : nstr,secday
 
@@ -1955,13 +1964,10 @@ c
 #  ifndef atmos_only
 
 *     Local parameters
-      character (len=*), parameter :: subnam = 'ocnc_avginit_k247'
+      character (len=*), parameter :: subnam = 'ocnc_avgout_k247'
 
 !!  netCDF variables used locally
       integer ncstat
-      integer xopdim, yopdim, lodim, axodims, odims(3)
-      integer xop_id, yop_id, lo_id
-      integer po_id
       integer nf_id
 
 !!  Other variables used locally
@@ -1971,6 +1977,8 @@ c
       character(6) :: now_time
 !      character(256) :: nc_fname
 
+      integer start3(3),count3(3)
+
       write(now_time,'(I6.6)') nint( dto * nt / ( nstr * secday ) )
 !      write(now_time,'(I12.12)') nint(dto * nt / nstr)
 
@@ -1979,6 +1987,59 @@ c
      &           outdir(1:lenod)//'/avg/ocavg_'//now_time//'day.nc',
      &                    NF_CLOBBER, nf_id)
       if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+
+      call ocnc_avginit_k247( nf_id )
+
+      start3(1) = 1
+      start3(2) = 1
+      start3(3) = 1
+      count3(1) = nxpo
+      count3(2) = nypo
+      count3(3) = nlo
+      ncstat = nf_put_vara_double(nf_id, poavg_id, start3, count3, po)
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+#ifdef NOWCUT
+#endif
+
+      ncstat = nf_close( nf_id )
+      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+
+#  endif /* not atmos_only */
+#endif /* use_netcdf */
+
+      END SUBROUTINE ocnc_avgout_k247
+
+
+      SUBROUTINE ocnc_avginit_k247( nf_id )
+
+*     based on ocnc_init
+*     Initialises the files ocpo_avg_nt*.nc (p-grid, id = )
+
+*     Modules
+      USE parameters
+#ifndef atmos_only
+      USE occonst
+#endif /* not atmos_only */
+
+      IMPLICIT NONE
+
+#ifdef use_netcdf
+      INCLUDE 'netcdf.inc'
+#endif /* use_netcdf */
+*
+*     Subroutine arguments
+      integer nf_id
+#ifdef use_netcdf
+#  ifndef atmos_only
+
+*     Local parameters
+      character (len=*), parameter :: subnam = 'ocnc_avginit_k247'
+
+!!  netCDF variables used locally
+      integer ncstat
+      integer xopdim, yopdim, lodim, axodims, odims(3)
+      integer xop_id, yop_id, lo_id
+
 
       ncstat = nf_def_dim(nf_id, 'xp', nxpo, xopdim)
       if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
@@ -2020,11 +2081,11 @@ c
       odims(1) = xopdim
       odims(2) = yopdim
       odims(3) = lodim
-      ncstat = nf_def_var(nf_id, 'p', NF_FLOAT, 3, odims, po_id)
+      ncstat = nf_def_var(nf_id, 'p', NF_FLOAT, 3, odims, poavg_id)
       if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
-      ncstat = nf_put_att_text(nf_id, po_id, 'units', 6, 'm2.s-2')
+      ncstat = nf_put_att_text(nf_id, poavg_id, 'units', 6, 'm2.s-2')
       if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
-      ncstat = nf_put_att_text(nf_id, po_id, 'long_name',
+      ncstat = nf_put_att_text(nf_id, poavg_id, 'long_name',
      &              22, 'Ocean dynamic pressure')
       if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
 
@@ -2038,16 +2099,13 @@ c
       if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
       ncstat = nf_put_var_double(nf_id, lo_id, lomid)
       if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
-#ifdef NOWCUT
-#endif
-
-      ncstat = nf_close( nf_id )
-      if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
 
 #  endif /* not atmos_only */
 #endif /* use_netcdf */
 
       END SUBROUTINE ocnc_avginit_k247
+
+
 #endif /* ocnc_avg_k247 */
 
 c
