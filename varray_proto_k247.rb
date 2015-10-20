@@ -87,6 +87,10 @@ class VArray_Proto_K247
     end
   end
 
+  def chg_grid( new_grid )
+    @grid = chk_grid( new_grid )
+  end
+
   def set_units( unit )
     if unit.class == String
       @attr["units"] = unit
@@ -128,19 +132,23 @@ class VArray_Proto_K247
   end
 
   def get_gphys( grid=nil )
-    if grid.class != Grid and @grid == nil
-      puts "get_gphys: object does not have grid."
-      return false
+  #  if grid.class != Grid and @grid == nil
+    if @grid == nil
+      @grid = chk_grid( grid )
+      return false unless @grid
     end
-    return GPhys.new( grid, get_varray )
+    return GPhys.new( @grid, get_varray )
   end
 
   def netcdf_write( nc_fu, grid=nil )
-    if grid == nil and @grid == nil
-      return false
-    end
-    GPhys::NetCDF_IO.write( nc_fu, GPhys.new( grid, get_varray ) )
+    GPhys::NetCDF_IO.write( nc_fu, get_gphys( grid ) )
     return true
+  end
+
+  def netcdf_write_fopen( nc_fn, grid=nil )
+    nc_fu = NetCDF.create( nc_fn )
+    netcdf_write( nc_fu, grid )
+    nc_fu.close
   end
 end
 
