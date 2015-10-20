@@ -1194,10 +1194,12 @@ c   atmospheric mixed layer thickness
 #endif /* no_oml_k247 */
 
 #ifdef ocnc_avg_k247
+      noutocavg = nint( ocavgday*secday/dto )*nstr
       lomid(1) = 0.5d-3*hoc(1)
       do i=2,nlo
         lomid(i) = lomid(i-1) + 0.5d-3*( hoc(i-1) + hoc(i) )
       enddo
+      call ocnc_avgout_k247( 0, outdir )
 #endif /* ocnc_avg_k247 */
 
       do 1000 nt=nsteps0+1,nsteps
@@ -1438,10 +1440,12 @@ c   atmospheric mixed layer thickness
 #  ifndef atmos_only
         if ( mod(ntdone,noutoc).eq.0 ) then
           call ocnc_out (nsko, outfloc)
-#ifdef ocnc_avg_k247
-        call ocnc_avgout_k247( nt, outdir )
-#endif /* ocnc_avg_k247 */
         endif
+#    ifdef ocnc_avg_k247
+        if ( mod(ntdone,noutocavg).eq.0 ) then
+          call ocnc_avgout_k247( nt, outdir )
+        endif
+#    endif /* ocnc_avg_k247 */
 #  endif /* atmos_only */
 #  ifndef ocean_only
         if ( mod(ntdone,noutat).eq.0 ) then

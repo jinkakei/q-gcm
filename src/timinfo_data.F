@@ -99,6 +99,12 @@ c
 *     noutstepat = no. of atmos. data dumps within current run  set in main program
 *     numoutsteps = no. of diagnostic dumps within current run  set in main program
 *
+
+#ifdef ocnc_avg_k247
+      double precision, PARAMETER :: ocavgday= 1.0d0
+      integer :: noutocavg
+#endif /* ocnc_avg_k247 */
+
       END MODULE timinfo
 c
 c***********************************************************************

@@ -892,6 +892,16 @@ end
           return nxp*nyp*nz*ntime
         end
 
+    # 2015-10-20: tmp
+    def self.prep_modify_po_grid_tmp( gp_po )
+      origin = gp_po.get_axes_parts_k247
+      modified = origin.clone
+      puts "  ocpo.nc@p: replace X,Y Axis ( 0 at center)"
+        modified['xp']   = self.prep_modify_po_xy( origin['xp'] )
+        modified['yp']   = self.prep_modify_po_xy( origin['yp'] )
+      return gp_po.restore_grid_k247( modified )
+    end # def self.prep_modify_grid( apts )
+
     # argument: gp_po -- gphys object of ocpo.nc@p (*) 
     #                    (*) q-gcm/src/outdata_*/ocpo.nc@p
     def self.prep_modify_po_grid( gp_po )
