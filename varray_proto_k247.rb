@@ -145,7 +145,7 @@ class VArray_Proto_K247
     return true
   end
 
-  def netcdf_write_fopen( nc_fn, grid=nil )
+  def netcdf_write_create( nc_fn, grid=nil )
     nc_fu = NetCDF.create( nc_fn )
     netcdf_write( nc_fu, grid )
     nc_fu.close
