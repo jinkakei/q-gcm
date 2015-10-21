@@ -42,7 +42,8 @@ FC = ifort -80 -fpp -std90 -xSSE2
 #FFLAGS = -O3 -ipo -mp1 -fpe0 -align -automatic -static -openmp -warn all,nointerfaces
 #FFLAGS = -O3 -ip -mp1 -fpe0 -align -automatic -static -openmp -warn all,nointerfaces
 
-FFLAGS = -O3 -ip -mp1 -fpe0 -align -openmp -warn all,nointerfaces
+#FFLAGS = -O3 -ip -mp1 -fpe0 -align -openmp -warn all,nointerfaces
+FFLAGS = -O3 -ip -mp1 -fpe0 -align -openmp -warn all,nointerfaces -mcmodel=large -shared-intel
 
 #DEBUGS = -check all -ftrapuv -implicitnone -warn all -mp1 -automatic -fpe0 -static -g -traceback
 #DEBUGS = -check all -ftrapuv -implicitnone -warn all,nointerfaces -mp1 -automatic -fpe0 -align -static -g -traceback

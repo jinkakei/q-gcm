@@ -40,11 +40,11 @@ c
 *     User settable grid parameters:
       integer :: nxta,nyta,nla,nxaooc,nyaooc,ndxr,nlo
 *     Atmosphere
-!      PARAMETER ( nxta = 240, nyta = 120, nla = 3 )  !! k247: Early11 with 2km
+      PARAMETER ( nxta = 240, nyta = 120, nla = 3 )  !! k247: Early11 with 2km
 !      PARAMETER ( nxta = 120, nyta = 120, nla = 3 )  !! 80 km atmosphere
 !      PARAMETER ( nxta = 120, nyta =  60, nla = 3 )  !! 80 km atmosphere
 !      PARAMETER ( nxta =  60, nyta =  60, nla = 3 )   !! 80 km atmosphere
-      PARAMETER ( nxta =  30, nyta =  30, nla = 3 )   !! 80 km atmosphere
+!      PARAMETER ( nxta =  30, nyta =  30, nla = 3 )   !! 80 km atmosphere
 !     PARAMETER ( nxta =  384, nyta =  96, nla = 3 )  !! 80 km atmosphere
 !!    PARAMETER ( nxta =  512, nyta = 128, nla = 3 )  !! 60 km atmosphere
 !!    PARAMETER ( nxta =  768, nyta = 192, nla = 3 )  !! 40 km atmosphere
