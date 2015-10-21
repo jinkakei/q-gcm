@@ -1199,6 +1199,7 @@ c   atmospheric mixed layer thickness
       do i=2,nlo
         lomid(i) = lomid(i-1) + 0.5d-3*( hoc(i-1) + hoc(i) )
       enddo
+      call avg_ocn_k247
       call ocnc_avgout_k247( 0, outdir )
 #endif /* ocnc_avg_k247 */
 
@@ -1232,6 +1233,9 @@ c   atmospheric mixed layer thickness
 
 *         Compute pv on ocean boundaries (mixed condition)
           call ocqbdy (qo, po)
+#  ifdef ocnc_avg_k247
+          call avg_ocn_k247
+#  endif /* ocnc_avg_k247 */
 #endif /* not atmos_only */
 
         endif

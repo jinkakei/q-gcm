@@ -49,6 +49,11 @@ c
 *     wekpo is the ocean Ekman velocity at p gridpoints (m s^-1)
 *     wekto is the ocean Ekman velocity at T gridpoints (m s^-1)
 
+
+#ifdef ocnc_avg_k247
+      double precision po_avg(nxpo,nypo,nlo)
+#endif /* ocnc_avg_k247 */
+
 #endif /* not atmos_only */
 
       END MODULE ocstate

@@ -1946,7 +1946,7 @@ c
       USE occonst
       USE ocstate
 #endif /* not atmos_only */
-      USE timinfo, ONLY : nstr,secday
+      USE timinfo, ONLY : nstr,secday, noutocavg, nsum_ocavg
 
       IMPLICIT NONE
 
@@ -1971,16 +1971,31 @@ c
       integer nf_id
 
 !!  Other variables used locally
-!      double precision xo(nxpo),yo(nypo),tmp(nlo)
-!      integer i, iwk, mwk
 !      character(12) :: now_time ! [sec]
       character(6) :: now_time
-!      character(256) :: nc_fname
-
+      integer i,j,k
       integer start3(3),count3(3)
+      double precision rnsum
 
+      rnsum = 1.0d0 / dble( nsum_ocavg )
+
+! calc average
+!$OMP PARALLEL DEFAULT (NONE)
+!$OMP&         PRIVATE (i,j,k)
+!$OMP&         SHARED  (po,po_avg,rnsum)
+      do k=1,nlo
+!$OMP   DO SCHEDULE (STATIC)
+        do j=1,nypo
+          do i=1,nxpo
+            po_avg(i,j,k) = rnsum * po_avg(i,j,k)
+          enddo
+        enddo
+!$OMP   END DO NOWAIT
+      enddo
+!$OMP END PARALLEL
+
+! netcdf out
       write(now_time,'(I6.6)') nint( dto * nt / ( nstr * secday ) )
-!      write(now_time,'(I12.12)') nint(dto * nt / nstr)
 
       lenod = index(outdir, '   ') - 1
       ncstat = nf_create (
@@ -1996,19 +2011,38 @@ c
       count3(1) = nxpo
       count3(2) = nypo
       count3(3) = nlo
-      ncstat = nf_put_vara_double(nf_id, poavg_id, start3, count3, po)
+! snapshot
+!      ncstat = nf_put_vara_double(nf_id, poavg_id, start3, count3, po)
+! average
+      ncstat = nf_put_vara_double(nf_id, poavg_id, start3, count3, 
+     &                            po_avg)
       if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
-#ifdef NOWCUT
-#endif
 
       ncstat = nf_close( nf_id )
       if ( ncstat.ne.NF_NOERR ) call handle_err (ncstat, subnam)
+
+! reset
+!$OMP PARALLEL DEFAULT (NONE)
+!$OMP&         PRIVATE (i,j,k)
+!$OMP&         SHARED  (po_avg)
+      do k=1,nlo
+!$OMP   DO SCHEDULE (STATIC)
+        do j=1,nypo
+          do i=1,nxpo
+            po_avg(i,j,k) = 0.0d0
+          enddo
+        enddo
+!$OMP   END DO NOWAIT
+      enddo
+!$OMP END PARALLEL
+      nsum_ocavg = 0
 
 #  endif /* not atmos_only */
 #endif /* use_netcdf */
 
       END SUBROUTINE ocnc_avgout_k247
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
       SUBROUTINE ocnc_avginit_k247( nf_id )
 

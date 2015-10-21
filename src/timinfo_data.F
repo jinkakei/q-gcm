@@ -103,6 +103,7 @@ c
 #ifdef ocnc_avg_k247
       double precision, PARAMETER :: ocavgday= 1.0d0
       integer :: noutocavg
+      integer :: nsum_ocavg
 #endif /* ocnc_avg_k247 */
 
       END MODULE timinfo

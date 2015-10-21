@@ -34,6 +34,9 @@ c
       PRIVATE
 
       PUBLIC :: tavini, tavatm, tavocn, tavout
+#ifdef ocnc_avg_k247
+      PUBLIC :: avg_ocn_k247
+#endif /* ocnc_avg_k247 */
 
       integer, PUBLIC, SAVE :: tavncid
 
@@ -614,6 +617,50 @@ c
 #endif
 
       END SUBROUTINE tavocn
+c
+c***********************************************************************
+c
+#ifdef ocnc_avg_k247
+      SUBROUTINE avg_ocn_k247
+
+*     Modules
+      USE parameters
+#ifndef atmos_only
+      USE occonst
+      USE ocstate
+#endif
+      USE timinfo, ONLY : nsum_ocavg
+
+      IMPLICIT NONE
+
+*     Subroutine arguments
+*
+#ifndef atmos_only
+*
+*     Local variables
+      integer i,j,k
+*
+
+!$OMP PARALLEL DEFAULT (NONE)
+!$OMP&         PRIVATE (i,j,k)
+!$OMP&         SHARED  (po,po_avg)
+      do k=1,nlo
+!$OMP   DO SCHEDULE (STATIC)
+        do j=1,nypo
+          do i=1,nxpo
+            po_avg(i,j,k) = po_avg(i,j,k) + po(i,j,k)
+          enddo
+        enddo
+!$OMP   END DO NOWAIT
+      enddo
+
+!$OMP END PARALLEL
+      nsum_ocavg = nsum_ocavg + 1
+
+#endif /* atmos_only */
+
+      END SUBROUTINE avg_ocn_k247
+#endif /* ocnc_avg_k247 */
 c
 c***********************************************************************
 c
