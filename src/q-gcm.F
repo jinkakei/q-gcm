@@ -1199,8 +1199,9 @@ c   atmospheric mixed layer thickness
       do i=2,nlo
         lomid(i) = lomid(i-1) + 0.5d-3*( hoc(i-1) + hoc(i) )
       enddo
-      call avg_ocn_k247
-      call ocnc_avgout_k247( 0, outdir )
+      ! for snapshot mode
+      !call avg_ocn_k247
+      !call ocnc_avgout_k247( 0, outdir )
 #endif /* ocnc_avg_k247 */
 
       do 1000 nt=nsteps0+1,nsteps
