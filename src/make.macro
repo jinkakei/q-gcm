@@ -33,7 +33,9 @@
 # Need linelength = 80 for getting LAPACK/BLAS from lasubs.f,
 # and for some inline comments in parameters_data.F, otherwise
 # default linelength = 72 would suffice for the rest of the code
-FC = ifort -80 -fpp -std90 -xSSE2
+#FC = ifort -80 -fpp -std90 -xSSE2
+# for warning in netcdf.inc(1464): source line truncated
+FC = ifort -132 -fpp -std90 -xSSE2
 # Moving to -std95 produces an excessive number of warnings
 #FFLAGS = -O3 -ip -mp1 -fpe0 -align -automatic
 #FFLAGS = -O3 -ip -mp1 -fpe0 -align -automatic -static
