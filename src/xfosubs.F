@@ -97,13 +97,14 @@ c
 *     the boundaries of the cells surrounding the timestepped q points
 *
 *     Local variables
-      integer i,j,ioff,joff,io,jo
+      integer i,j,io,jo
       double precision hxafac,hxofac,txsums,txsumn
 *     Optional variables for extra checking
 !!    double precision wekint,wpsumi
 
 #if defined tau_udiff || !defined ocean_only
       integer nijwid,ia,ja,ibeg,jbeg,jlo,jhi,it
+      integer ioff,joff
       double precision cdhfaa,cdhfab,cdrfaa,cdrfab,qu2faa,qu2fab,
      &                 zbfcat,zbfcoc,u1at(nxpa,nypa),v1at(nxpa,nypa),
      &                 u1ator(nxpaor,nypaor),v1ator(nxpaor,nypaor),
@@ -1631,7 +1632,8 @@ c
       parameter ( u2fprt = .false. )
 *
 *     Local variables
-      integer ip,jp,kp,id,jd,kd,i,j,k
+**      integer ip,jp,kp,id,jd,kd,i,j,k
+      integer ip,jp,kp,id,jd,kd,i,j
       double precision u2f(16,16),stinv(16,16),wfsum
 *
       SAVE stinv
