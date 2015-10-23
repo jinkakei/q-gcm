@@ -1726,7 +1726,11 @@ c
 *
 *     Local variables
       integer i,j,k,nxco,nyco,nxca,nyca
-      double precision plfac(nla),play
+*      double precision plfac(nla),play
+#ifndef ocean_only
+      double precision plfac(nla)
+#endif /* not ocean_only */
+      double precision play
 **    double precision sumc,sumcp,p1off
 
 *     Centres of domains if needed for sample printing
