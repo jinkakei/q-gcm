@@ -1953,9 +1953,16 @@ c***********************************************************************
       character (len=*), parameter :: subnam = 'monnc_init'
 
 !! Netcdf variables used locally
-      integer ncstat, timedim, ladim, lodim, lamdim, lomdim
-      integer edims(2), lo_id, la_id, lom_id, lam_id, k
-      double precision tomp(nlo), tamp(nla)
+**      integer ncstat, timedim, ladim, lodim, lamdim, lomdim
+**      integer edims(2), lo_id, la_id, lom_id, lam_id, k
+**      double precision tomp(nlo), tamp(nla)
+      integer ncstat, timedim, lodim, lomdim
+      integer edims(2), lo_id, lom_id, k
+      double precision tomp(nlo)
+#  ifndef ocean_only
+      integer ladim, lamdim, la_id, lam_id
+      double precision tamp(nla)
+#  endif /* not ocean_only */
 
 !! Define time dimension:
       ncstat = nf_def_dim(monncid, 'time', numoutsteps, timedim)
