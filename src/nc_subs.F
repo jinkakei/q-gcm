@@ -38,8 +38,13 @@ c
 
       PRIVATE
 
-      PUBLIC :: handle_err, ocnc_init, atnc_init, ocnc_out,
-     &          atnc_out, resave_nc, restart_nc
+      PUBLIC :: handle_err, ocnc_init, ocnc_out,
+     &          resave_nc, restart_nc
+**      PUBLIC :: handle_err, ocnc_init, atnc_init, ocnc_out,
+**     &          atnc_out, resave_nc, restart_nc
+#ifndef ocean_only
+      PUBLIC :: atnc_init, atnc_out
+#endif /* not ocean_only */
 
 #ifdef ocnc_avg_k247
       PUBLIC :: ocnc_avginit_k247, ocnc_avgout_k247
@@ -479,6 +484,7 @@ c
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+#ifndef ocean_only
       SUBROUTINE atnc_init (nska, outflat)
 
 *     Modules
@@ -824,6 +830,7 @@ c
 #endif /* use_netcdf */
 
       END SUBROUTINE atnc_init
+#endif /* not ocean_only */
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -1066,6 +1073,7 @@ c
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+#ifndef ocean_only
       SUBROUTINE atnc_out (nska, outflat)
 
 *     Modules
@@ -1316,6 +1324,7 @@ c
 #endif /* use_netcdf */
 
       END SUBROUTINE atnc_out
+#endif /* not ocean_only */
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
