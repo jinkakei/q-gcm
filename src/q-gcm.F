@@ -97,6 +97,15 @@ c***********************************************************************
       integer i,j,k,iorest,nsko,nska,nt,lenod,lename,oceanonly,
      &        atmosonly,getcovar,outfloc(7),outflat(7),
      &        cyclicoc,hflxsb,hflxnb,tauudiff
+* ToDo: refactoring
+#ifndef atmos_only
+#  ifdef cyclic_ocean
+      integer i1
+#  endif /* cyclic_ocean */
+#endif   /* not atmos_only */
+#ifndef ocean_only
+      integer i1
+#endif  /* not ocean_only */
       double precision tspind
       character (len=72) :: name
       character (len=80) :: outdir, inpbuf
@@ -122,17 +131,6 @@ c***********************************************************************
 #  endif /* ocean_only */
       logical fexist
 #endif
-
-* ToDo: refactoring
-#ifndef atmos_only
-#  ifdef cyclic_ocean
-      integer i1
-#  endif /* cyclic_ocean */
-#endif   /* not atmos_only */
-#ifndef ocean_only
-      integer i1
-#endif  /* not ocean_only */
-
 
 *     Extra variables for OpenMP
 !$    integer nprocs,OMP_GET_NUM_PROCS,nthmax,OMP_GET_MAX_THREADS,

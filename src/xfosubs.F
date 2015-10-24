@@ -99,6 +99,8 @@ c
 *     Local variables
       integer i,j,io,jo
       double precision hxafac,hxofac,txsums,txsumn
+***     txsums, txsumn are not used ( ocean_only & cyclic_ocean )
+***     not improved yet ( k247 )      
 *     Optional variables for extra checking
 !!    double precision wekint,wpsumi
 
