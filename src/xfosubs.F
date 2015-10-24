@@ -98,9 +98,16 @@ c
 *
 *     Local variables
       integer i,j,io,jo
-      double precision hxafac,hxofac,txsums,txsumn
-***     txsums, txsumn are not used ( ocean_only & cyclic_ocean )
-***     not improved yet ( k247 )      
+**      double precision hxafac,hxofac,txsums,txsumn
+      double precision hxafac,hxofac
+#ifndef ocean_only
+      double precision txsums,txsumn
+#endif /* not ocean_only */
+#ifndef atmos_only
+#  ifdef cyclic_ocean
+      double precision txsums_oc,txsumn_oc
+#  endif /* cyclic_ocean */
+#endif /* not atmos_only */
 *     Optional variables for extra checking
 !!    double precision wekint,wpsumi
 
@@ -662,16 +669,18 @@ c
 *     Compute by applying Stokes' theorem 1/2 (atmos. res)
 *     gridlength in from the Southern & Northern boundaries,
 *     i.e. surrounding those p-cells which are timestepped.
-      txsums = 0.5d0*( tauxo(1,   1  ) + tauxo(1,  2 ) )
-      txsumn = 0.5d0*( tauxo(1,nypo-1) + tauxo(1,nypo) )
+      txsums_oc = 0.5d0*( tauxo(1,   1  ) + tauxo(1,  2 ) )
+      txsumn_oc = 0.5d0*( tauxo(1,nypo-1) + tauxo(1,nypo) )
       do io=2,nxpo-1
-        txsums = txsums + ( tauxo(io,   1  ) + tauxo(io,  2 ) )
-        txsumn = txsumn + ( tauxo(io,nypo-1) + tauxo(io,nypo) )
+        txsums_oc = txsums_oc + ( tauxo(io,   1  ) + tauxo(io,  2 ) )
+        txsumn_oc = txsumn_oc + ( tauxo(io,nypo-1) + tauxo(io,nypo) )
       enddo
-      txsums = txsums + 0.5d0*( tauxo(nxpo,   1  ) + tauxo(nxpo,  2 ) )
-      txsumn = txsumn + 0.5d0*( tauxo(nxpo,nypo-1) + tauxo(nxpo,nypo) )
-      txisoc = 0.5d0*dxo*txsums
-      txinoc = 0.5d0*dxo*txsumn
+      txsums_oc = txsums_oc 
+     &             + 0.5d0*( tauxo(nxpo,   1  ) + tauxo(nxpo,  2 ) )
+      txsumn_oc = txsumn_oc 
+     &             + 0.5d0*( tauxo(nxpo,nypo-1) + tauxo(nxpo,nypo) )
+      txisoc = 0.5d0*dxo*txsums_oc
+      txinoc = 0.5d0*dxo*txsumn_oc
 
 *     Compute Integ (wekpo) doAI for checking
 *     ---------------------------------------
