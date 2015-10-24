@@ -78,7 +78,7 @@ c
 #ifndef atmos_only
       double precision wko(nxpo,nypo,nlo)
 #  ifdef cyclic_ocean
-      double precision opsp,opnp,ops,opn
+      double precision apsp_oc,apnp_oc,aps_oc,apn_oc
       double precision opins(nlo),opinn(nlo),opinsp(nlo),opinnp(nlo)
 #  endif
 #endif
@@ -175,21 +175,21 @@ c
 *     get full momentum constraint quantities
 *     ---------------------------------------
       do k=1,nlo
-        opsp = 0.0d0
-        opnp = 0.0d0
-        ops  = 0.0d0
-        opn  = 0.0d0
+        apsp_oc = 0.0d0
+        apnp_oc = 0.0d0
+        aps_oc  = 0.0d0
+        apn_oc  = 0.0d0
         do j=1,nlo
-          opsp = opsp + amatoc(k,j)*opinsp(j)
-          opnp = opnp + amatoc(k,j)*opinnp(j)
-          ops  = ops  + amatoc(k,j)*opins(j)
-          opn  = opn  + amatoc(k,j)*opinn(j)
+          apsp_oc = apsp_oc + amatoc(k,j)*opinsp(j)
+          apnp_oc = apnp_oc + amatoc(k,j)*opinnp(j)
+          aps_oc  = aps_oc  + amatoc(k,j)*opins(j)
+          apn_oc  = apn_oc  + amatoc(k,j)*opinn(j)
         enddo
 *       Change sign of southern derivative terms
-        ocncsp(k) = -ocncsp(k) + 0.5d0*dyo*fnot*fnot*opsp
-        ocncnp(k) =  ocncnp(k) + 0.5d0*dyo*fnot*fnot*opnp
-        ocncs(k)  = -ocncs(k)  + 0.5d0*dyo*fnot*fnot*ops
-        ocncn(k)  =  ocncn(k)  + 0.5d0*dyo*fnot*fnot*opn
+        ocncsp(k) = -ocncsp(k) + 0.5d0*dyo*fnot*fnot*apsp_oc
+        ocncnp(k) =  ocncnp(k) + 0.5d0*dyo*fnot*fnot*apnp_oc
+        ocncs(k)  = -ocncs(k)  + 0.5d0*dyo*fnot*fnot*aps_oc
+        ocncn(k)  =  ocncn(k)  + 0.5d0*dyo*fnot*fnot*apn_oc
       enddo
       print *,' '
       write (*,240) '  ocncsp = ',ocncsp
@@ -350,14 +350,16 @@ c
 *     Local variables
 **      integer i,j,k,m,info
       integer i,j,m
+#ifndef ocean_only
       double precision pch1yn,pch2yn,pch1ys,pch2ys,
      &                 pchdet,aipch1,aipch2
-#ifndef ocean_only
       double precision bat(nxta),atwk1(nxpa,nypa),atwk2(nxpa,nypa)
 #endif
 #ifndef atmos_only
       double precision boc(nxto)
 #  ifdef cyclic_ocean
+      double precision pch1yn_oc,pch2yn_oc,pch1ys_oc,pch2ys_oc,
+     &                 pchdet_oc,aipch1_oc,aipch2_oc
       double precision ocwk1(nxpo,nypo),ocwk2(nxpo,nypo)
 #  else  /* cyclic_ocean */
       integer k,info
@@ -500,44 +502,44 @@ c
           enddo
         endif
 *       Compute area integrals of pch1oc and pch2oc
-        call xintp (aipch1, ocwk1, nxpo, nypo)
-        call xintp (aipch2, ocwk2, nxpo, nypo)
+        call xintp (aipch1_oc, ocwk1, nxpo, nypo)
+        call xintp (aipch2_oc, ocwk2, nxpo, nypo)
 *       Both solutions should have the same area integral
-        aipcho(m) = 0.5d0*(aipch1+aipch2)*dxo*dyo
+        aipcho(m) = 0.5d0*(aipch1_oc+aipch2_oc)*dxo*dyo
 
 *       Compute dp/dy half a gridpoint in from the north
 *       and south boundaries, and "integrate" in x
 *       Since these solutions are independent of x,
 *       x integration means just multiply by xlo
-        pch1ys = ( pch1oc(  2 ,m) - pch1oc(   1  ,m) )/dyo
-        pch2ys = ( pch2oc(  2 ,m) - pch2oc(   1  ,m) )/dyo
-        pch1yn = ( pch1oc(nypo,m) - pch1oc(nypo-1,m) )/dyo
-        pch2yn = ( pch2oc(nypo,m) - pch2oc(nypo-1,m) )/dyo
+        pch1ys_oc = ( pch1oc(  2 ,m) - pch1oc(   1  ,m) )/dyo
+        pch2ys_oc = ( pch2oc(  2 ,m) - pch2oc(   1  ,m) )/dyo
+        pch1yn_oc = ( pch1oc(nypo,m) - pch1oc(nypo-1,m) )/dyo
+        pch2yn_oc = ( pch2oc(nypo,m) - pch2oc(nypo-1,m) )/dyo
 *       Correction for baroclinic modes
-        pch1ys = -pch1ys + 0.5d0*dyo*rdm2oc(m+1)*pch1oc(  1 ,m)
-        pch2ys = -pch2ys + 0.5d0*dyo*rdm2oc(m+1)*pch2oc(  1 ,m)
-        pch1yn =  pch1yn + 0.5d0*dyo*rdm2oc(m+1)*pch1oc(nypo,m)
-        pch2yn =  pch2yn + 0.5d0*dyo*rdm2oc(m+1)*pch2oc(nypo,m)
+        pch1ys_oc = -pch1ys_oc + 0.5d0*dyo*rdm2oc(m+1)*pch1oc(  1 ,m)
+        pch2ys_oc = -pch2ys_oc + 0.5d0*dyo*rdm2oc(m+1)*pch2oc(  1 ,m)
+        pch1yn_oc =  pch1yn_oc + 0.5d0*dyo*rdm2oc(m+1)*pch1oc(nypo,m)
+        pch2yn_oc =  pch2yn_oc + 0.5d0*dyo*rdm2oc(m+1)*pch2oc(nypo,m)
 *       Convert to line integrals
-        pch1ys = xlo*pch1ys
-        pch2ys = xlo*pch2ys
-        pch1yn = xlo*pch1yn
-        pch2yn = xlo*pch2yn
+        pch1ys_oc = xlo*pch1ys_oc
+        pch2ys_oc = xlo*pch2ys_oc
+        pch1yn_oc = xlo*pch1yn_oc
+        pch2yn_oc = xlo*pch2yn_oc
 *       The above are (for each mode m) the quantities in square
 *       brackets on the RHS of (B.14) and (B.15) (ocean version)
-        pchdet = pch1ys*pch2yn - pch2ys*pch1yn
-        hc1soc(m) = pch1ys/pchdet
-        hc2soc(m) = pch2ys/pchdet
-        hc1noc(m) = pch1yn/pchdet
-        hc2noc(m) = pch2yn/pchdet
+        pchdet_oc = pch1ys_oc*pch2yn_oc - pch2ys_oc*pch1yn_oc
+        hc1soc(m) = pch1ys_oc/pchdet_oc 
+        hc2soc(m) = pch2ys_oc/pchdet_oc
+        hc1noc(m) = pch1yn_oc/pchdet_oc
+        hc2noc(m) = pch2yn_oc/pchdet_oc
         print *,' '
-        write (*,240) '  aipch1, aipch2 = ',aipch1,aipch2
-        write (*,240) '  aipcho         = ',aipcho(m)
-        write (*,240) '  pch1ys, pch1yn = ',pch1ys,pch1yn
-        write (*,240) '  pch2ys, pch2yn = ',pch2ys,pch2yn
-        write (*,240) '  pchdet         = ',pchdet
-        write (*,240) '  hc1soc, hc2soc = ',hc1soc(m),hc2soc(m)
-        write (*,240) '  hc1noc, hc2noc = ',hc1noc(m),hc2noc(m)
+        write (*,240) '  aipch1_oc, aipch2_oc = ',aipch1_oc,aipch2_oc
+        write (*,240) '  aipcho               = ',aipcho(m)
+        write (*,240) '  pch1ys_oc, pch1yn_oc = ',pch1ys_oc,pch1yn_oc
+        write (*,240) '  pch2ys_oc, pch2yn_oc = ',pch2ys_oc,pch2yn_oc
+        write (*,240) '  pchdet_oc            = ',pchdet_oc
+        write (*,240) '  hc1soc, hc2soc       = ',hc1soc(m),hc2soc(m)
+        write (*,240) '  hc1noc, hc2noc       = ',hc1noc(m),hc2noc(m)
       enddo
 #  else
 *     Finite box ocean
