@@ -1,6 +1,4 @@
 #!/usr/bin/ruby
-require '~/lib_k247/K247_basic'
-#require '~/lib_k247/K247_qgcm'
 require_relative 'lib_k247_for_qgcm'
 
 # How to use
@@ -33,7 +31,7 @@ watcher = K247_Main_Watch.new
   
   exec_command( "mkdir #{odir}" )
   File.open( "outdata.dat", 'w' ) do | f | f.puts "#{odir}" end
-  ##  exec_command( "rmdir #{odir}" ) # for test
+  exec_command( "mkdir #{odir}/avg" ) # for averaged data
 #=end
 
 

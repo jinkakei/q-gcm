@@ -13,10 +13,23 @@ class Admin_work_k247
     @watcher = K247_Main_Watch.new
     @bgn_time = time_now_str_sec
     check_subdirs
-    @cp_files = ["../src/input.params", "../exec_qgcm.rb"]
-    @link_files = ["*.F", "*.f", "make.macro", "make.config", \
-                   "Makefile", "cntl_q-gcm", "*.F90", "fftpack", \
-                   "../lib_k247_for_qgcm.rb"]
+    @cp_files = ["../exec_qgcm.rb", \
+                 "../src/input.params", "../src/parameters_data.F", \
+                 "../src/make.config" \
+                ]
+    #@ln_files = ["*.F", "*.f", "make.macro", \
+    #               "Makefile", "cntl_q-gcm", "*.F90", "fftpack"]
+    @ln_files = { :src_dir => \
+                    ["*.F", "*.f", "fftpack", \
+                     "Makefile", "make.macro", \
+                     "cntl_q-gcm", \
+                     "*.F90" \
+                    ], \
+                  :qg_home => \
+                    [ "lib_k247_for_qgcm.rb", \
+                      "varray_proto_k247.rb" \
+                    ] \
+                }
       # CAUTION!: fftpack is directory, 
       #           "$ rm -rf fftpack/" is remove original directory
       #           "$ rm -f fftpack" is remove symbolic link file
@@ -53,15 +66,16 @@ class Admin_work_k247
 
   def set_links
     puts "set links to src files"
-    src_path = "../src/"
-    #src_path = "../src_test29/"
-    @link_files.each do | f |
-      exec_command( "ln -s #{src_path}#{f} .")
+    @ln_files[:src_dir].each do | f |
+      exec_command( "ln -s ../src/#{f} .")
+    end
+    @ln_files[:qg_home].each do | f |
+      exec_command( "ln -s ../#{f} .")
     end
   end
 
   def copy_files
-  # frequently changed files
+    # frequently changed files ( git commit when cleanup )
     puts "copy several files from src"
     @cp_files.each do |cpf|
       exec_command("cp -p #{cpf} .")
@@ -106,7 +120,11 @@ class Admin_work_k247
   end
 
   def rm_f_links
-    @link_files.each do | f |
+    puts "remove links"
+    @ln_files[:src_dir].each do | f |
+      exec_command( "rm -f #{f}" )
+    end
+    @ln_files[:qg_home].each do | f |
       exec_command( "rm -f #{f}" )
     end
   end

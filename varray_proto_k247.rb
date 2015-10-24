@@ -2,10 +2,9 @@
 require "numru/gphys"
 include NumRu
 
-# 2015-10-16
 # ToDo
-#   - restore VArray
-#   - 
+#   - under construction ( build basics )
+#   - add lib_k247
 #   - 
 class VArray_Proto_K247
   attr_reader :nary, :attr, :name

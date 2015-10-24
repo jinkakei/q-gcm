@@ -10,9 +10,9 @@
 ! 0.0027397260D0  !! trun    = Length of run in years   (1 day)
 ! 0.0054794521D0  !! trun    = Length of run in years   (2 days)
 ! 0.013698630D0   !! trun    = Length of run in years   (5 days)
- 0.027397260D0   !! trun    = Length of run in years  (10 days)
+! 0.027397260D0   !! trun    = Length of run in years  (10 days)
 ! 0.041095890D0   !! trun    = Length of run in years  (15 days)
-! 0.054794521D0   !! trun    = Length of run in years  (20 days)
+ 0.054794521D0   !! trun    = Length of run in years  (20 days)
 ! 0.082191781D0   !! trun    = Length of run in years  (30 days)
 ! 0.109589041D0   !! trun    = Length of run in years  (40 days)
 ! 0.164383562D0   !! trun    = Length of run in years  (60 days)
@@ -42,6 +42,7 @@
 !! Physical parameters
 !! -------------------
  4.0D3           !! dxo     = Ocean grid spacing (m)
+! 2.0D3           !! dxo     = Ocean grid spacing (m)
 ! 2.0d0           !! delek   = Ocean bottom Ekman layer thickness (m)
 ! no bottom Ekman layer
  0.0d0           !! delek   = Ocean bottom Ekman layer thickness (m)
@@ -60,6 +61,7 @@
 !! ---------------------------------
  0.250d0         !! valday  = Validity checking interval (days)
  10.0d0          !! odiday  = Ocean  data dump interval  (days)
+! 20.0d0          !! odiday  = Ocean  data dump interval  (days)
 ! 0.00125d0      !! odiday : 108 sec for 29_28a @2015-08-23
  5.00d0          !! adiday  = Atmos. data dump interval  (days)
  1.00d0          !! dgnday  = Diagnostics data dump interval (days)
@@ -120,6 +122,7 @@
 !! --------------------------------
 !! Initial state. Options are: zero, rbal or the name of a restart file
 !zero
+!rbal
 !./lastday.nc
 ./restart.nc
 !! Ocean  topography. Options are: flat, define or the name of a file
