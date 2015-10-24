@@ -346,7 +346,8 @@ c
      &            prhsat=.false., phelat=.false., psolat=.false. )
 *
 *     Local variables
-      integer i,j,k,m,info
+**      integer i,j,k,m,info
+      integer i,j,m
       double precision pch1yn,pch2yn,pch1ys,pch2ys,
      &                 pchdet,aipch1,aipch2
 #ifndef ocean_only
@@ -356,6 +357,8 @@ c
       double precision boc(nxto)
 #  ifdef cyclic_ocean
       double precision ocwk1(nxpo,nypo),ocwk2(nxpo,nypo)
+#  else
+      integer k,info
 #  endif
 #endif
 
