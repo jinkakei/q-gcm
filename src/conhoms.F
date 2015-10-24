@@ -69,14 +69,16 @@ c
 *
 *     Local variables
       integer i,j,k
-      double precision apsp,apnp,aps,apn
+***      double precision apsp,apnp,aps,apn
 #ifndef ocean_only
+      double precision apsp,apnp,aps,apn
       double precision wka(nxpa,nypa,nla),
      &                 apins(nla),apinn(nla),apinsp(nla),apinnp(nla)
 #endif
 #ifndef atmos_only
       double precision wko(nxpo,nypo,nlo)
 #  ifdef cyclic_ocean
+      double precision opsp,opnp,ops,opn
       double precision opins(nlo),opinn(nlo),opinsp(nlo),opinnp(nlo)
 #  endif
 #endif
@@ -173,21 +175,21 @@ c
 *     get full momentum constraint quantities
 *     ---------------------------------------
       do k=1,nlo
-        apsp = 0.0d0
-        apnp = 0.0d0
-        aps  = 0.0d0
-        apn  = 0.0d0
+        opsp = 0.0d0
+        opnp = 0.0d0
+        ops  = 0.0d0
+        opn  = 0.0d0
         do j=1,nlo
-          apsp = apsp + amatoc(k,j)*opinsp(j)
-          apnp = apnp + amatoc(k,j)*opinnp(j)
-          aps  = aps  + amatoc(k,j)*opins(j)
-          apn  = apn  + amatoc(k,j)*opinn(j)
+          opsp = opsp + amatoc(k,j)*opinsp(j)
+          opnp = opnp + amatoc(k,j)*opinnp(j)
+          ops  = ops  + amatoc(k,j)*opins(j)
+          opn  = opn  + amatoc(k,j)*opinn(j)
         enddo
 *       Change sign of southern derivative terms
-        ocncsp(k) = -ocncsp(k) + 0.5d0*dyo*fnot*fnot*apsp
-        ocncnp(k) =  ocncnp(k) + 0.5d0*dyo*fnot*fnot*apnp
-        ocncs(k)  = -ocncs(k)  + 0.5d0*dyo*fnot*fnot*aps
-        ocncn(k)  =  ocncn(k)  + 0.5d0*dyo*fnot*fnot*apn
+        ocncsp(k) = -ocncsp(k) + 0.5d0*dyo*fnot*fnot*opsp
+        ocncnp(k) =  ocncnp(k) + 0.5d0*dyo*fnot*fnot*opnp
+        ocncs(k)  = -ocncs(k)  + 0.5d0*dyo*fnot*fnot*ops
+        ocncn(k)  =  ocncn(k)  + 0.5d0*dyo*fnot*fnot*opn
       enddo
       print *,' '
       write (*,240) '  ocncsp = ',ocncsp
@@ -357,9 +359,9 @@ c
       double precision boc(nxto)
 #  ifdef cyclic_ocean
       double precision ocwk1(nxpo,nypo),ocwk2(nxpo,nypo)
-#  else
+#  else  /* cyclic_ocean */
       integer k,info
-#  endif
+#  endif /* cyclic_ocean */
 #endif
 
       print *,' '
