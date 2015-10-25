@@ -1149,6 +1149,10 @@ c   atmospheric mixed layer thickness
 #  ifdef nospl_in_ewbdy_k247
       print *,'     !CAUTION! N-S boundary Only!'
 #  endif ! #  ifdef nospl_in_ewbdy_k247
+!$OMP PARALLEL DO DEFAULT (NONE)
+!$OMP&         PRIVATE (i,j)
+!$OMP&         SHARED  (r_spl,dxo,dyo)
+!$OMP&         SCHEDULE (STATIC)
       do i=1,nxpo
       do j=1,nypo
 ! 27_02~04
@@ -1174,6 +1178,7 @@ c   atmospheric mixed layer thickness
 !     &               / ( l_spl ) )**2.0d0 )
       enddo
       enddo
+!$OMP END PARALLEL DO
 #endif /* #ifdef sponge_layer_k247 */
 
 
