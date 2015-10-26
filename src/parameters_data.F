@@ -40,18 +40,18 @@ c
 *     User settable grid parameters:
       integer :: nxta,nyta,nla,nxaooc,nyaooc,ndxr,nlo
 *     Atmosphere
-!      PARAMETER ( nxta = 240, nyta = 120, nla = 3 )  !! k247: Early11 with 2km
-!      PARAMETER ( nxta = 120, nyta = 120, nla = 3 )  !! 80 km atmosphere
-!      PARAMETER ( nxta = 120, nyta =  60, nla = 3 )  !! 80 km atmosphere
-!      PARAMETER ( nxta =  60, nyta =  60, nla = 3 )   !! 80 km atmosphere
-      PARAMETER ( nxta =  30, nyta =  30, nla = 3 )   !! 80 km atmosphere
+!      PARAMETER ( nxta = 240, nyta = 120, nla = 3 )  !! 3840x1920 ocean
+!      PARAMETER ( nxta = 120, nyta = 120, nla = 3 )  !! 1920x1920 ocean
+!      PARAMETER ( nxta = 120, nyta =  60, nla = 3 )  !! 1920x 960 ocean
+      PARAMETER ( nxta =  60, nyta =  60, nla = 3 )   !!  960x 960 ocean
+!      PARAMETER ( nxta =  30, nyta =  30, nla = 3 )   !! 480x 480 ocean
 !     PARAMETER ( nxta =  384, nyta =  96, nla = 3 )  !! 80 km atmosphere
 !!    PARAMETER ( nxta =  512, nyta = 128, nla = 3 )  !! 60 km atmosphere
 !!    PARAMETER ( nxta =  768, nyta = 192, nla = 3 )  !! 40 km atmosphere
 !!    PARAMETER ( nxta = 1536, nyta = 384, nla = 3 )  !! 20 km atmosphere
 *     Ocean
 !     for cyclic_ocean ( nxta = nxaooc )
-      PARAMETER ( nxaooc =nxta, nyaooc =nyta, ndxr = 16, nlo = 2 ) 
+      PARAMETER ( nxaooc =nxta, nyaooc =nyta, ndxr = 16, nlo = 2 ) !! k247 default
 !     PARAMETER ( nxaooc =  60, nyaooc =  60, ndxr = 16, nlo = 3 )  !! 80 km atm.
 !!    PARAMETER ( nxaooc =  80, nyaooc =  80, ndxr = 12, nlo = 3 )  !! 60 km atm.
 !!    PARAMETER ( nxaooc = 120, nyaooc = 120, ndxr =  8, nlo = 3 )  !! 40 km atm.
