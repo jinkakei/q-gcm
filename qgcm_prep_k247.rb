@@ -25,6 +25,7 @@ end
 
   def initialize( cname )
     @cname = cname
+    @org_fname = [ "ocpo.nc", "monit.nc", "input_parameters.m" ]
   # setup
     cd_qgcm_work
     init_settings
@@ -78,36 +79,26 @@ end
       @dpath = "./outdata_#{@cname}/"
     end
   
-    def set_dpath_with_check( cname )
-       set_dpath( cname )
-       if dpath_has_elements?( dpath )
+    def set_dpath_with_check
+       set_dpath
+       if org_file_exist?
          return true
        else
          return false
        end
     end
   
-    def dpath_has_elements?( dpath )
-      ofpaths = set_original_fpaths( dpath )
-      current_fpaths = Dir::glob( dpath + "*" )
-      ofpaths.each do | f |
-        if current_fpaths.include?( f )
-          #puts "  #{f} exist"
+    def org_file_exist?
+      current_fpaths = Dir::glob( @dpath + "*" )
+      @org_fname.each do | f |
+        if ary_get_include_index( current_fpaths, f )
+        #  puts "  #{f} exist"
         else
           puts "  #{f} does not exist"
           return false 
         end
       end
       return true
-    end
-      
-    def set_original_fpaths( dpath )
-      fnames = ["ocpo.nc", "monit.nc", "input_parameters.m"]
-      fpaths = []
-      fnames.each do | fn |
-        fpaths.push( dpath + fn )
-      end
-      return fpaths
     end
   
   
@@ -258,8 +249,8 @@ end
           end
         end
   
-          def ocpo_has_po?( fpath )
-            return GPhys::IO.var_names( fpath ).include?("p")
+          def ocpo_has_po?
+            return GPhys::IO.var_names( @dpath + "ocpo.nc" ).include?("p")
           end
         
         def check_po_size( fpath )
@@ -269,8 +260,8 @@ end
           print msg if current_size >= size_criterion
         end
   
-          def calc_po_size( fpath )
-            gp_po = GPhys::IO.open( fpath, 'p')
+          def calc_po_size
+            gp_po = GPhys::IO.open( @dpath + "ocpo.nc", 'p')
             nxp   = gp_po.coord("xp"  ).val.length
             nyp   = gp_po.coord("yp"  ).val.length
             nz    = gp_po.coord("z"   ).val.length
@@ -468,9 +459,9 @@ end
         return nlo_str.to_i
       end
   
-      def read_input_params( dpath )
+      def read_input_params
         lines = []
-        fu = File.open( dpath + "input_parameters.m",'r' )
+        fu = File.open( @dpath + "input_parameters.m",'r' )
         while l = fu.gets
           lines.push( l.chomp ) 
         end
@@ -497,35 +488,37 @@ require 'minitest/autorun'
 require_relative "lib_qgcm_k247"
 
 class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
+
   def setup
     @cname = "test"
     @obj = K247_qgcm_preprocess.new( @cname )
     cd_testdir
     @gcname = "test"
-    @goal_fname = "Goal__#{@gcname}__.txt"
-    system("touch #{@goal_fname}")
-  # ToDo: What should be the format of data?
-    @dpath_empty = "./outdata_#{@cname}/"
-    system("mkdir #{@dpath_empty}")
-    ["ocpo.nc", "monit.nc", "input_parameters.m"].each do |fname|
-      system("touch #{@dpath_empty+fname}")
-    end
-#  # Dir has some data
-#    # ToDo: must rename @ 2015-10-07
-#    @dpath_dummy = "./log/test_qgcm_k247/"
-#      @ocpo_path  = @dpath_dummy + "ocpo.nc"
-#      @monit_path = @dpath_dummy + "monit.nc"
+    @dpath_test = "./outdata_#{@cname}/"
+  #  setup_files
     @obj.init_settings
   end
+
 
     def cd_testdir
       Dir::chdir( QGCM_HOME_PATH + "testdir" )
     end
 
+    def setup_files
+    # now: dummy files copied from work
+    #  @goal_fname = "Goal__#{@gcname}__.txt"
+    #  system("touch #{@goal_fname}")
+    #  system("mkdir #{@dpath_test}")
+    #  ["ocpo.nc", "monit.nc", "input_parameters.m"].each do |fname|
+    #    system("touch #{@dpath_test+fname}")
+    #  end
+    end
+
   def teardown
-    system("rm #{@goal_fname}")
-    system("rm -f #{@dpath_empty}*")
-    system("rmdir #{@dpath_empty}")
+  # now: dummy files copied from work
+  #  system("rm #{@goal_fname}")
+  #  system("rm -f #{@dpath_test}*")
+  #  system("rmdir #{@dpath_test}")
   end
 
   def test_instance_defined
@@ -545,7 +538,6 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
   end
 
   def test_set_greater_cname
-  #  @obj.set_greater_cname
     assert_equal @gcname, @obj.gcname
   end
 
@@ -554,96 +546,69 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
     assert_equal answer, @obj.p_fpath
   end
 
-=begin
-  def test_dpath_has_elements_true
-    assert @obj.prep_dpath_has_elements?( @dpath_empty )
+  def test_org_file_exist
+    assert @obj.org_file_exist?
   end
 
-  def test_dpath_has_elements_false
-    refute @obj.prep_dpath_has_elements?( "./nil_path/" )
-  end
-
-  def test_prep_ocpo_has_po?
-    assert @obj.prep_ocpo_has_po?( @dpath_dummy + "ocpo.nc" )
-  end
-
-  def test_prep_calc_po_size
-    assert_equal 961*961*2*2, @obj.prep_calc_po_size( @dpath_dummy + "ocpo.nc" )
-  end
-  
-  def test_prep_modify_po_xy
-    axes_parts = GPhys::IO.open( @ocpo_path, 'p' ).get_axes_parts_k247
-    upd_xy = @obj.prep_modify_po_xy( axes_parts['xp'] )
-    assert_equal 0, ( upd_xy['val'][0] + upd_xy['val'][-1])
-  end
-
-  def test_prep_modify_po_time
-    axes_parts = GPhys::IO.open( @ocpo_path, 'p' ).get_axes_parts_k247
-    upd_time = @obj.prep_modify_po_time( axes_parts['time'] )
-    assert_equal "days", upd_time['atts']['units']
-  end
-
-  #def test_prep_read_monit_all
-  #  p @obj.prep_read_monit_all( @dpath_dummy )
-  #end
-
-  def test_prep_read_input_params
-    lines = @obj.prep_read_input_params( @dpath_dummy )
+# parmeter
+  def test_read_input_params
+    lines = @obj.read_input_params
     assert_equal 114, lines.length, "check when change input_parmeters.m"
   end
 
-  def test_prep_params_del_comments
-    lines = @obj.prep_read_input_params( @dpath_dummy )
-    @obj.prep_params_del_comments( lines )
+  def test_params_del_comments
+    lines = @obj.read_input_params
+    @obj.params_del_comments( lines )
     assert_equal 110, lines.length
   end
 
+=begin
   def params_get_nlo
     lines = @obj.prep_read_input_params( @dpath_dummy )
     assert_equal 2, @obj.prep_params_get_nlo( lines )
       # fail when nlo is change
   end
 
-  def test_prep_params_get_nodim
+  def test_params_get_nodim
     lines    = @obj.prep_read_input_params( @dpath_dummy )
     pno_hash = @obj.prep_params_get_nodim ( lines )
     #  p pno_hash
     assert_equal 8, pno_hash["name"].length
   end
 
-  def test_prep_params_get_z
+  def test_params_get_z
     lines = @obj.prep_read_input_params( @dpath_dummy )
     pz_hash = @obj.prep_params_get_z( lines )
     #  p pz_hash
     assert_equal 5, pz_hash["name"].length
   end
 
-  def test_prep_params_get_zi
+  def test_params_get_zi
     lines    = @obj.prep_read_input_params( @dpath_dummy )
     pzi_hash = @obj.prep_params_get_zi( lines )
     #  p pzi_hash
     assert_equal 3, pzi_hash["name"].length
   end
 
-  def test_prep_params_get_wrap
+  def test_params_get_wrap
     lines    = @obj.prep_read_input_params( @dpath_dummy )
     para_hash = @obj.prep_params_get_wrap( lines )
     #  p para_hash
     assert_equal 16, para_hash["name"].length
   end
   
-  def test_prep_params_conv_line_z
+  def test_params_conv_line_z
     line = "ah4oc= [ah4oc   0.00000E+00]; %% Layers 2,n"
     val = @obj.prep_params_conv_line_z( line )
     assert_equal " 0.00000E+00", val
   end
 
-  def test_prep_get_params
+  def test_get_params
     para_hash = @obj.prep_get_params( @dpath_dummy )
     assert_equal 16, para_hash["name"].length
   end
 
-  def test_prep_write_para
+  def test_write_para
     out_fu = NetCDF.create( @dpath_dummy + "qgcm_para.nc" )
     p_hash = @obj.prep_get_params( @dpath_dummy )
     ret    = @obj.prep_write_para( @dpath_dummy, out_fu, p_hash )
@@ -651,7 +616,33 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
     assert ret
   end
 
-  def test_prep_write_monit
+  def test_ocpo_has_po?
+    assert @obj.ocpo_has_po?
+  end
+
+  def test_calc_po_size
+    assert_equal 481*481*2*3, @obj.calc_po_size
+  end
+
+  def test_modify_po_xy
+    axes_parts = GPhys::IO.open( @ocpo_path, 'p' ).get_axes_parts_k247
+    upd_xy = @obj.prep_modify_po_xy( axes_parts['xp'] )
+    assert_equal 0, ( upd_xy['val'][0] + upd_xy['val'][-1])
+  end
+
+  def test_modify_po_time
+    axes_parts = GPhys::IO.open( @ocpo_path, 'p' ).get_axes_parts_k247
+    upd_time = @obj.prep_modify_po_time( axes_parts['time'] )
+    assert_equal "days", upd_time['atts']['units']
+  end
+
+
+
+  #def test_read_monit_all
+  #  p @obj.prep_read_monit_all( @dpath_dummy )
+  #end
+
+  def test_write_monit
     out_fu = NetCDF.create( @dpath_dummy + "qgcm_monit.nc" )
     m_hash = @obj.prep_read_monit_all( @dpath_dummy )
     ret    = @obj.prep_write_monit( out_fu, m_hash )

@@ -35,7 +35,11 @@ def ary_get_include_index( ary, kwd )
   for i in 0..ary.length-1
     idx.push( i ) if ary[i].include?( kwd )
   end
-  return idx
+  if idx != []
+    return idx
+  else
+    return false 
+  end
 end
 
 def exec_command( cmd )

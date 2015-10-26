@@ -1,4 +1,5 @@
 require_relative 'qgcm_k247'
+require_relative 'lib_qgcm_k247'
 require_relative "varray_proto_k247"
 
 #va = VArray_Proto_K247.new( \
@@ -6,6 +7,11 @@ require_relative "varray_proto_k247"
 
 watcher = K247_Main_Watch.new
 
+test_ary = [ "t", "as" ]
+p ary_get_include_index( test_ary, "b" )
+p ary_get_include_index( test_ary, "s" )
+
+=begin
 #outdir = "./outdata_nctest42/"
 outdir = "./outdata_nctest43/"
 orgdir = "avg/"
@@ -55,8 +61,7 @@ end
   fname0 = "#{outdir+avgdir}poavg_#{avgday0}day.nc"
   vap_pavg.netcdf_write_create( fname0 )
 
-=begin
-  # distorted ?
+# distorted ?
   avgday1 = sprintf( "%06d",  avgday )
   fname1 = "#{outdir+avgdir}poavg_#{avgday1}day.nc"
   na_p1 = GPhys::IO.open( fname1, "pavg" ).val
