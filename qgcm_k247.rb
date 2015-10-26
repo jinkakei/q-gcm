@@ -4,6 +4,9 @@
 # load libraries
 require_relative "lib_qgcm_k247"
 
+# ToDo
+#   - update for separation of prepare class ( qgcm_prep_k247.rb )
+
 
 
 class K247_qgcm_data

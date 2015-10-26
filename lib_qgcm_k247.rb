@@ -2,11 +2,21 @@ require "numru/gphys"
 require "numru/ggraph"
 include NumRu
 
-
+class Test_tmp_class
+  #
+end
 
 # for qgcm
 module K247_qgcm_common
-  
+  QGCM_HOME_PATH = "/LARGE0/gr10056/t51063/q-gcm/"
+
+  def cd_qgcm_home
+    Dir::chdir( QGCM_HOME_PATH )
+  end
+  def cd_qgcm_work
+    cd_qgcm_home
+    Dir::chdir( "work" )
+  end
 end # module K247_qgcm_common
 
 

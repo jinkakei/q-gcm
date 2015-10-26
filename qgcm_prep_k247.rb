@@ -1,9 +1,17 @@
 require 'minitest/autorun'
 require_relative 'qgcm_k247.rb'
 require_relative "lib_qgcm_k247"
+include K247_qgcm_common
 
 class K247_qgcm_preprocess
 # 2015-10-26: separate from K247_qgcm_data ( qgcm_k247.rb )
+  attr_reader :cname, :gcname, :dpath, :p_fpath
+
+# basic methods
+def false_with_msg( msg )
+  puts msg
+  return false
+end
 
 ## - class methods for preparation ( unify outdata_*/* )
 ##  contents@2015-09-02
@@ -17,7 +25,19 @@ class K247_qgcm_preprocess
 
   def initialize( cname )
     @cname = cname
-    # ToDo: cd **/q-gcm/work
+  # setup
+    cd_qgcm_work
+    init_settings
+  end
+
+  def init_settings
+    set_dpath
+    set_greater_cname
+    set_para_fpath
+  end
+
+  def set_para_fpath
+    @p_fpath = @dpath + "parameters_#{@gcname}_#{@cname}.nc"
   end
 
   def exist?
@@ -34,7 +54,7 @@ class K247_qgcm_preprocess
   def unify_outdata( cname=nil )
     puts "beginning of unite outdata files"
   
-    exit_with_msg("input case name") if cname==nil
+    false_with_msg("input case name") if cname==nil
     dpath     = set_dpath_with_check( cname )
     out_nf    = set_unified_fpath_with_check( cname )
       gp_ocpo    = get_updated_po( dpath )
@@ -54,30 +74,16 @@ class K247_qgcm_preprocess
   
   
   ## prepare
-  
-  # Goal: reduce type
-  #   ToDo: change place
-  #   memo: error message should be displayed @ 2015-10-07
-  def self.check_case( cname )
-    exit_with_msg("input case name") if cname==nil
-  end
-  
-  def check_case( cname )
-    exit_with_msg("input case name") if cname==nil
-  end
-  
-  
-    def set_dpath( cname )
-      self.check_case(cname)
-      return "./outdata_#{cname}/"
+    def set_dpath
+      @dpath = "./outdata_#{@cname}/"
     end
   
     def set_dpath_with_check( cname )
-       dpath = set_dpath( cname )
+       set_dpath( cname )
        if dpath_has_elements?( dpath )
-         return dpath
+         return true
        else
-         exit_with_msg( "#{dpath} lack element files")
+         return false
        end
     end
   
@@ -108,27 +114,27 @@ class K247_qgcm_preprocess
   def set_unified_fpath_with_check( cname )
     fpath = set_unified_fpath( cname )
     if File.exist?( fpath )
-      exit_with_msg( "outfile: #{fpath} is already exist")
+      false_with_msg( "outfile: #{fpath} is already exist")
     else
       return fpath
     end
   end
-  
+
   def set_unified_fpath( cname )
     dpath = set_dpath( cname )
     gcname = set_greater_cname
     return "#{dpath}q-gcm_#{gcname}_#{cname}_out.nc"
   end
   
-    def set_greater_cname( arg=nil)
+    def set_greater_cname
     # ver. 2015-10-06: use ./Goal__*__.txt
       goal_file = Dir::glob("./Goal__*__.txt")
       if goal_file.length > 1
         p goal_file
-        exit_with_msg("Test Goal must be one and only")
+        false_with_msg("Test Goal must be one and only")
       end
-      exit_with_msg("Goal__*__.txt is not exist") if goal_file[0] == nil
-      return goal_file[0].split("__")[1]
+      false_with_msg("Goal__*__.txt is not exist") if goal_file[0] == nil
+      @gcname = goal_file[0].split("__")[1]
     end
   
   
@@ -248,7 +254,7 @@ class K247_qgcm_preprocess
   
         def exit_if_ocpo_lack_po( fpath )
           unless ocpo_has_po?( fpath )
-            exit_with_msg("#{fpath} does not include p") 
+            false_with_msg("#{fpath} does not include p") 
           end
         end
   
@@ -492,53 +498,63 @@ require_relative "lib_qgcm_k247"
 
 class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
   def setup
-    @obj = K247_qgcm_preprocess.new( "test" )
-#    @cname = "test"
-#    @gcname = "test"
-#    @goal_fname = "Goal__#{@gcname}__.txt"
-#    system("touch #{@goal_fname}")
-#  # ToDo: What should be the format of data?
-#    @dpath_empty = "./outdata_#{@cname}/"
-#    system("mkdir #{@dpath_empty}")
-#    ["ocpo.nc", "monit.nc", "input_parameters.m"].each do |fname|
-#      system("touch #{@dpath_empty+fname}")
-#    end
+    @cname = "test"
+    @obj = K247_qgcm_preprocess.new( @cname )
+    cd_testdir
+    @gcname = "test"
+    @goal_fname = "Goal__#{@gcname}__.txt"
+    system("touch #{@goal_fname}")
+  # ToDo: What should be the format of data?
+    @dpath_empty = "./outdata_#{@cname}/"
+    system("mkdir #{@dpath_empty}")
+    ["ocpo.nc", "monit.nc", "input_parameters.m"].each do |fname|
+      system("touch #{@dpath_empty+fname}")
+    end
 #  # Dir has some data
 #    # ToDo: must rename @ 2015-10-07
 #    @dpath_dummy = "./log/test_qgcm_k247/"
 #      @ocpo_path  = @dpath_dummy + "ocpo.nc"
 #      @monit_path = @dpath_dummy + "monit.nc"
+    @obj.init_settings
   end
 
-#  def teardown
-#    system("rm #{@goal_fname}")
-#    system("rm -f #{@dpath_empty}*")
-#    system("rmdir #{@dpath_empty}")
-#  end
+    def cd_testdir
+      Dir::chdir( QGCM_HOME_PATH + "testdir" )
+    end
 
-  def test_init
+  def teardown
+    system("rm #{@goal_fname}")
+    system("rm -f #{@dpath_empty}*")
+    system("rmdir #{@dpath_empty}")
+  end
+
+  def test_instance_defined
     assert @obj.exist?
   end
-=begin
-  def test_exist_class
-    assert @obj.exist_class?
+
+  def test_init_position
+    qg_workdir = "/LARGE0/gr10056/t51063/q-gcm/work"
+    # for KUDPC
+    ins = K247_qgcm_preprocess.new( "tmp" )
+    assert_equal qg_workdir, Dir::pwd
+    cd_testdir # for teardown
   end
 
   def test_set_dpath
-    assert_equal "./outdata_#{@cname}/", \
-                 @obj.prep_set_dpath( @cname )
+    assert_equal "./outdata_#{@cname}/", @obj.dpath
   end
 
   def test_set_greater_cname
-    gcname = @obj.prep_set_greater_cname
-    assert_equal @gcname, gcname
+  #  @obj.set_greater_cname
+    assert_equal @gcname, @obj.gcname
   end
 
-  def test_set_unified_fpath
-    answer = "./outdata_#{@cname}/q-gcm_#{@gcname}_#{@cname}_out.nc"
-    assert_equal answer, @obj.prep_set_unified_fpath( @cname )
+  def test_set_para_fpath
+    answer = "./outdata_#{@cname}/parameters_#{@gcname}_#{@cname}.nc"
+    assert_equal answer, @obj.p_fpath
   end
 
+=begin
   def test_dpath_has_elements_true
     assert @obj.prep_dpath_has_elements?( @dpath_empty )
   end
