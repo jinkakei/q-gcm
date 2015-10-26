@@ -1,11 +1,20 @@
 require "numru/gphys"
 require "numru/ggraph"
 include NumRu
-# Info
-#   these method may be out of date.
-#   orginal methods are in ~/lib_k247/*.
 
 
+
+# for qgcm
+module K247_qgcm_common
+  
+end # module K247_qgcm_common
+
+
+
+
+# Caution
+#   methods below are copied from ~/lib_k247/*,
+#   and may be out of date.
 def exit_with_msg( msg )
   print "\n\n!ERROR! #{msg}!\n\nexit\n\n"
   exit -1

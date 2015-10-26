@@ -5,8 +5,9 @@
 require_relative "lib_qgcm_k247"
 
 
-
-
+module K247_qgcm_common
+  
+end # module K247_qgcm_common
 
 
 class K247_qgcm_data
