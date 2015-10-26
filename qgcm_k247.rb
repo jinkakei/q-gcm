@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # load libraries
-require_relative "lib_k247_for_qgcm"
+require_relative "lib_qgcm_k247"
 
 
 
@@ -1131,7 +1131,7 @@ end
 if $0 == __FILE__ then
 # move test code to test_qgcm_k247.rb
 require 'minitest/autorun'
-require_relative "lib_k247_for_qgcm"
+require_relative "lib_qgcm_k247"
 
 class Test_K247_qgcm_E8 < MiniTest::Unit::TestCase
   def setup

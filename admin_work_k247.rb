@@ -1,5 +1,6 @@
 #!/usr/bin/ruby
-require "~/lib_k247/K247_basic.rb"
+#require "~/lib_k247/K247_basic.rb"
+require_relative "lib_qgcm_k247"
 
 # How to use
 #   q-gcm  [!] <- here is running place
@@ -28,7 +29,7 @@ class Admin_work_k247
            "*.F90" \
           ], \
         :qg_home => \
-          [ "qgcm_k247.rb", "lib_k247_for_qgcm.rb", \
+          [ "qgcm_k247.rb", "lib_qgcm_k247.rb", \
             "varray_proto_k247.rb", \
           ] \
       }

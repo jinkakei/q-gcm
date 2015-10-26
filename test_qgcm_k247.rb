@@ -1,6 +1,6 @@
 require 'minitest/autorun'
 require_relative 'qgcm_k247.rb'
-require_relative 'lib_k247_for_qgcm.rb'
+require_relative "lib_qgcm_k247"
 
 
 # plan

@@ -1,7 +1,6 @@
 # load libraries
 require "numru/gphys"
 include NumRu
-#require_relative "lib_k247_for_qgcm"
 
 # 2015-10-16
 # ToDo

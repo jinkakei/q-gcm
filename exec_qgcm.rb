@@ -1,5 +1,5 @@
 #!/usr/bin/ruby
-require_relative 'lib_k247_for_qgcm'
+require_relative 'lib_qgcm_k247'
 
 # How to use
 # $ exec_qgcm casename
@@ -9,6 +9,9 @@ require_relative 'lib_k247_for_qgcm'
 
 #   - merge gen_get_qgpara.rb
 #
+#   - refatoring
+#
+#   - 
 #   - 
 #   - 
 #   - 
