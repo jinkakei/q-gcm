@@ -13,23 +13,25 @@ class Admin_work_k247
     @watcher = K247_Main_Watch.new
     @bgn_time = time_now_str_sec
     check_subdirs
-    @cp_files = ["../exec_qgcm.rb", \
-                 "../src/input.params", "../src/parameters_data.F", \
-                 "../src/make.config" \
-                ]
+    @cp_files =  \
+      [ "../exec_qgcm.rb", \
+        "../src/input.params", "../src/parameters_data.F", \
+        "../src/make.config" \
+      ]
     #@ln_files = ["*.F", "*.f", "make.macro", \
     #               "Makefile", "cntl_q-gcm", "*.F90", "fftpack"]
-    @ln_files = { :src_dir => \
-                    ["*.F", "*.f", "fftpack", \
-                     "Makefile", "make.macro", \
-                     "cntl_q-gcm", \
-                     "*.F90" \
-                    ], \
-                  :qg_home => \
-                    [ "lib_k247_for_qgcm.rb", \
-                      "varray_proto_k247.rb" \
-                    ] \
-                }
+    @ln_files =  \
+      { :src_dir => \
+          ["*.F", "*.f", "fftpack", \
+           "Makefile", "make.macro", \
+           "cntl_q-gcm", \
+           "*.F90" \
+          ], \
+        :qg_home => \
+          [ "qgcm_k247.rb", "lib_k247_for_qgcm.rb", \
+            "varray_proto_k247.rb", \
+          ] \
+      }
       # CAUTION!: fftpack is directory, 
       #           "$ rm -rf fftpack/" is remove original directory
       #           "$ rm -f fftpack" is remove symbolic link file

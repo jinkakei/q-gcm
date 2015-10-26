@@ -330,7 +330,8 @@ end
     gp = GPhys.new( @grid_t, va )
     GPhys::NetCDF_IO.write( nc_fu, gp )
   end
-
+  
+  # ToDo: absorb sshmax_get_with_ij
   def sshmax_set_with_ij
     if @hmax == nil
       pmax   = NArray.sfloat( @nt )
@@ -346,6 +347,7 @@ end
     end # unless @hmax == nil
   end
 
+  # ToDo: replace to sshmax_set_with_ij
   def sshmax_get_with_ij
     pmax   = NArray.sfloat( @nt )
       hmax_i = NArray.sfloat( @nt )
