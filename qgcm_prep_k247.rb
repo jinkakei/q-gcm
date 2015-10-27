@@ -29,7 +29,7 @@ class K247_qgcm_preprocess
 ##   - unify_outdata( cname )
 ##   - set_filename( cname )
 ##     --  set_greater_cname( arg=nil)
-##   - write_monit( input )
+##   - monit_write_data( input )
 ##   - write_inpara( input )
 ##     -- read_inpara( input )
 ##   - modify_grid( apts )
@@ -69,12 +69,12 @@ class K247_qgcm_preprocess
     dpath     = set_dpath_with_check( cname )
     out_nf    = set_unified_fpath_with_check( cname )
       gp_ocpo    = get_updated_po( dpath )
-      hash_monit = read_monit_all( dpath )
+      hash_monit = monit_read_data( dpath )
       hash_para  = get_params( dpath ) 
     out_fu = NetCDF.create( out_nf )
       GPhys::NetCDF_IO.write(       out_fu, gp_ocpo )
       write_para(  dpath, out_fu, hash_para  )
-      write_monit(        out_fu, hash_monit )
+      monit_write_data(        out_fu, hash_monit )
       write_misc(         out_fu, cname  )
     out_fu.close
   
@@ -142,7 +142,7 @@ class K247_qgcm_preprocess
   
   
   ## write monit
-  def write_monit( out_fu, hash_monit )
+  def monit_write_data( out_fu, hash_monit )
     hash_monit.each_value do |item|
       GPhys::NetCDF_IO.write( out_fu, item )
     end
@@ -167,7 +167,7 @@ class K247_qgcm_preprocess
   end
 
     def get_updated_para_fname
-      return "para_#{@gcname}_#{@cname}.nc"
+      return "q-gcm_para_#{@gcname}_#{@cname}.nc"
     end
   
   # write parameters
@@ -237,7 +237,9 @@ class K247_qgcm_preprocess
         return { "fnot"=>"s-1", "beta"=>"s-1.m-1", \
                  "dxo"=>"m", "dto"=>"s", \
                  "rhooc"=>"kg.m-3", "cpoc"=>"J.kg-1.K-1", \
-                 "l_spl"=>"m", "c1_spl"=>" "}
+                 "l_spl"=>"m", "c1_spl"=>" ", \
+                 "nxto"=>" ","nyto"=>" ","nlo"=>" " \
+               }
       when "z"
         return { "tabsoc"=>"K", "tocc"=>"degC", "hoc"=>"m", \
                  "ah2oc"=>"m2.s-1", "ah4oc"=>"m4.s-1"}
@@ -330,14 +332,25 @@ class K247_qgcm_preprocess
   
   
   
-  ## read & modify monit.nc
-  def read_monit_all( dpath )
-    nf_name = dpath + "monit.nc"
-    monit_gp_out = {}
-    (monit_get_vname).each do | v |
-      monit_gp_out[ v ] = read_monit_var( nf_name, v)
+## monit.nc
+  def monit_ncout
+    out_fu = NetCDF.create( get_updated_monit_fname )
+    gp_mon = monit_read_data
+    ret    = monit_write_data( out_fu, gp_mon )
+    out_fu.close
+  end
+
+    def get_updated_monit_fname
+      return "q-gcm_monit_#{@gcname}_#{@cname}.nc"
     end
-    return monit_gp_out
+
+  def monit_read_data
+    fname = "monit.nc"
+    gp_monit = {}
+    (monit_get_vname).each do | v |
+      gp_monit[ v ] = read_monit_var( fname, v)
+    end
+    return gp_monit
   end
   
     def monit_get_vname
@@ -440,7 +453,8 @@ class K247_qgcm_preprocess
       def params_get_vname( type )
         return [ "gpoc", "cphsoc", "rdefoc"] if type == "zi"
         return [ "fnot", "beta", "dxo","dto", "rhooc", \
-                "cpoc", "l_spl", "c1_spl"] if type == "nodim"
+                "cpoc", "l_spl", "c1_spl", \
+                "nxto", "nyto", "nlo" ] if type == "nodim"
         return [ "ah2oc", "ah4oc", "tabsoc", "tocc", "hoc" ] if type == "z"
       end
   
@@ -568,7 +582,7 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
     assert @obj.orgfile_exist?
   end
 
-# parmeter
+# parameter
   def test_read_input_params
     lines = @obj.read_input_params
     assert_equal 114, lines.length, "check when change input_parmeters.m"
@@ -590,7 +604,7 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
     lines    = @obj.read_input_params
     pno_hash = @obj.params_get_nodim ( lines )
     #  p pno_hash
-    assert_equal 8, pno_hash["name"].length
+    assert_equal 11, pno_hash["name"].length
   end
 
   def test_params_get_z
@@ -611,7 +625,7 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
     lines    = @obj.read_input_params
     para_hash = @obj.params_get_wrap( lines )
     #  p para_hash
-    assert_equal 16, para_hash["name"].length
+    assert_equal 19, para_hash["name"].length
   end
   
   def test_params_conv_line_z
@@ -622,17 +636,17 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
 
   def test_get_params
     para_hash = @obj.get_params
-    assert_equal 16, para_hash["name"].length
+    assert_equal 19, para_hash["name"].length
   end
 
   def test_get_updated_para_fname
-    answer = "para_#{@gcname}_#{@cname}.nc"
+    answer = "q-gcm_para_#{@gcname}_#{@cname}.nc"
     assert_equal answer, @obj.get_updated_para_fname
   end
 
   # ToDo: What format?
   def test_write_para
-    fname = "para_test.nc"
+    fname = "test_para.nc"
     out_fu = NetCDF.create( fname )
       p_hash = @obj.get_params
       ret    = @obj.write_para( out_fu, p_hash )
@@ -640,8 +654,30 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
     assert ret
   #  system( "rm #{fname}" ) # for check
   end
-=begin
 
+
+# monit
+  def test_monit_read_data
+    gp_monit = @obj.monit_read_data
+    assert_equal 8, gp_monit.length
+  end
+
+  def test_get_updated_monit_fname
+    answer = "q-gcm_monit_#{@gcname}_#{@cname}.nc"
+    assert_equal answer, @obj.get_updated_monit_fname
+  end
+
+  def test_monit_write_data
+    fname = "test_monit.nc"
+    out_fu = NetCDF.create( fname )
+    gp_mon = @obj.monit_read_data
+    ret    = @obj.monit_write_data( out_fu, gp_mon )
+    out_fu.close
+    assert ret
+    #system( "rm -f #{fname}") # temporary
+  end
+
+=begin
   def test_ocpo_has_po?
     assert @obj.ocpo_has_po?
   end
@@ -663,18 +699,6 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
   end
 
 
-
-  #def test_read_monit_all
-  #  p @obj.read_monit_all( @dpath_dummy )
-  #end
-
-  def test_write_monit
-    out_fu = NetCDF.create( @dpath_dummy + "qgcm_monit.nc" )
-    m_hash = @obj.read_monit_all( @dpath_dummy )
-    ret    = @obj.write_monit( out_fu, m_hash )
-    out_fu.close
-    assert ret
-  end
 # not member of qgcm
   def test_get_include
     ary = ["ab", "acx", "ad"]
