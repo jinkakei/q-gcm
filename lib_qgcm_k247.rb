@@ -2,9 +2,6 @@ require "numru/gphys"
 require "numru/ggraph"
 include NumRu
 
-class Test_tmp_class
-  #
-end
 
 # for qgcm
 module K247_qgcm_common
@@ -21,6 +18,11 @@ end # module K247_qgcm_common
 
 
 
+# ToDo: join ~/lib_k247
+def false_with_msg( msg )
+  puts msg
+  return false
+end
 
 # Caution
 #   methods below are copied from ~/lib_k247/*,

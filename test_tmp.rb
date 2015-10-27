@@ -1,4 +1,5 @@
 require_relative 'qgcm_k247'
+require_relative 'qgcm_prep_k247'
 require_relative 'lib_qgcm_k247'
 require_relative "varray_proto_k247"
 
@@ -7,11 +8,13 @@ require_relative "varray_proto_k247"
 
 watcher = K247_Main_Watch.new
 
+K247_qgcm_preprocess_wrapper( "boxocean" )
+
+=begin
 test_ary = [ "t", "as" ]
 p ary_get_include_index( test_ary, "b" )
 p ary_get_include_index( test_ary, "s" )
 
-=begin
 #outdir = "./outdata_nctest42/"
 outdir = "./outdata_nctest43/"
 orgdir = "avg/"

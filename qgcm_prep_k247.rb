@@ -3,15 +3,23 @@ require_relative 'qgcm_k247.rb'
 require_relative "lib_qgcm_k247"
 include K247_qgcm_common
 
+
+def K247_qgcm_preprocess_wrapper( cname )
+# for test ( maybe more general )
+  K247_qgcm_common::cd_qgcm_work
+  Dir::chdir( "outdata_#{cname}")
+  return K247_qgcm_preprocess.new( cname )
+end
+
 class K247_qgcm_preprocess
 # 2015-10-26: separate from K247_qgcm_data ( qgcm_k247.rb )
-  attr_reader :cname, :gcname, :dpath, :p_fpath
+  attr_reader :cname, :dpath
+  attr_reader :gcname, :pfnew, :orgfile
 
-# basic methods
-def false_with_msg( msg )
-  puts msg
-  return false
-end
+# How to use
+#  - call from wrapper ( basically )
+#    - at /outdata_CNAME 
+#  - 
 
 ## - class methods for preparation ( unify outdata_*/* )
 ##  contents@2015-09-02
@@ -25,20 +33,19 @@ end
 
   def initialize( cname )
     @cname = cname
-    @org_fname = [ "ocpo.nc", "monit.nc", "input_parameters.m" ]
   # setup
-    cd_qgcm_work
-    init_settings
-  end
-
-  def init_settings
-    set_dpath
+  #  init_settings
+    @orgfile = [ "ocpo.nc", "monit.nc", "input_parameters.m" ]
     set_greater_cname
     set_para_fpath
   end
 
+  def init_settings
+  #  set_dpath # 2015-10-27: erase after refactoring of qgcm_prep
+  end
+
   def set_para_fpath
-    @p_fpath = @dpath + "parameters_#{@gcname}_#{@cname}.nc"
+    @pfnew = "parameters_#{@gcname}_#{@cname}.nc"
   end
 
   def exist?
@@ -81,17 +88,17 @@ end
   
     def set_dpath_with_check
        set_dpath
-       if org_file_exist?
+       if orgfile_exist?
          return true
        else
          return false
        end
     end
   
-    def org_file_exist?
-      current_fpaths = Dir::glob( @dpath + "*" )
-      @org_fname.each do | f |
-        if ary_get_include_index( current_fpaths, f )
+    def orgfile_exist?
+      files = Dir::entries( Dir::pwd )
+      @orgfile.each do | f |
+        if ary_get_include_index( files, f )
         #  puts "  #{f} exist"
         else
           puts "  #{f} does not exist"
@@ -119,7 +126,8 @@ end
   
     def set_greater_cname
     # ver. 2015-10-06: use ./Goal__*__.txt
-      goal_file = Dir::glob("./Goal__*__.txt")
+      # ToDo: get from STDIN unless Goal__*__.txt
+      goal_file = Dir::glob("../Goal__*__.txt")
       if goal_file.length > 1
         p goal_file
         false_with_msg("Test Goal must be one and only")
@@ -461,7 +469,8 @@ end
   
       def read_input_params
         lines = []
-        fu = File.open( @dpath + "input_parameters.m",'r' )
+      #  fu = File.open( @dpath + "input_parameters.m",'r' )
+        fu = File.open( "input_parameters.m",'r' )
         while l = fu.gets
           lines.push( l.chomp ) 
         end
@@ -490,15 +499,12 @@ require_relative "lib_qgcm_k247"
 class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
 
   def setup
-    @cname = "test"
-    @obj = K247_qgcm_preprocess.new( @cname )
     cd_testdir
-    @gcname = "test"
-    @dpath_test = "./outdata_#{@cname}/"
-  #  setup_files
-    @obj.init_settings
+    @gcname = "test" # */testdir/Goal__test__.txt
+    @cname = "test"  #  */testdir/outdata_test/
+    Dir::chdir( "outdata_#{@cname}" ) # copied from work
+    @obj = K247_qgcm_preprocess.new( @cname )
   end
-
 
     def cd_testdir
       Dir::chdir( QGCM_HOME_PATH + "testdir" )
@@ -525,29 +531,27 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
     assert @obj.exist?
   end
 
-  def test_init_position
-    qg_workdir = "/LARGE0/gr10056/t51063/q-gcm/work"
-    # for KUDPC
-    ins = K247_qgcm_preprocess.new( "tmp" )
-    assert_equal qg_workdir, Dir::pwd
-    cd_testdir # for teardown
-  end
+# 2015-10-27: erase after refactoring of qgcm_prep
+#  def test_set_dpath
+#    assert_equal "./outdata_#{@cname}/", @obj.dpath
+#  end
 
-  def test_set_dpath
-    assert_equal "./outdata_#{@cname}/", @obj.dpath
-  end
-
-  def test_set_greater_cname
+  def test_check_init_gcname
     assert_equal @gcname, @obj.gcname
   end
 
-  def test_set_para_fpath
-    answer = "./outdata_#{@cname}/parameters_#{@gcname}_#{@cname}.nc"
-    assert_equal answer, @obj.p_fpath
+  def test_check_init_para_fpath
+    answer = "parameters_#{@gcname}_#{@cname}.nc"
+    assert_equal answer, @obj.pfnew
   end
 
-  def test_org_file_exist
-    assert @obj.org_file_exist?
+  def test_check_init_orgfile
+    answer = [ "ocpo.nc", "monit.nc", "input_parameters.m" ]
+    assert_equal answer, @obj.orgfile
+  end
+
+  def test_orgfile_exist
+    assert @obj.orgfile_exist?
   end
 
 # parmeter
@@ -556,13 +560,14 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
     assert_equal 114, lines.length, "check when change input_parmeters.m"
   end
 
+=begin
   def test_params_del_comments
     lines = @obj.read_input_params
     @obj.params_del_comments( lines )
     assert_equal 110, lines.length
   end
 
-=begin
+#mark
   def params_get_nlo
     lines = @obj.prep_read_input_params( @dpath_dummy )
     assert_equal 2, @obj.prep_params_get_nlo( lines )
