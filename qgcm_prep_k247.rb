@@ -18,8 +18,11 @@ class K247_qgcm_preprocess
 
 # How to use
 #  - call from wrapper ( basically )
-#    - at /outdata_CNAME 
-#  - 
+#    - at /outdata_CNAME
+#  - refactoring
+  #  - delete old methods ( see tests )
+  #  - split params, monit?
+
 
 ## - class methods for preparation ( unify outdata_*/* )
 ##  contents@2015-09-02
@@ -124,17 +127,17 @@ class K247_qgcm_preprocess
     return "#{dpath}q-gcm_#{gcname}_#{cname}_out.nc"
   end
   
-    def set_greater_cname
-    # ver. 2015-10-06: use ./Goal__*__.txt
-      # ToDo: get from STDIN unless Goal__*__.txt
-      goal_file = Dir::glob("../Goal__*__.txt")
-      if goal_file.length > 1
-        p goal_file
-        false_with_msg("Test Goal must be one and only")
-      end
-      false_with_msg("Goal__*__.txt is not exist") if goal_file[0] == nil
-      @gcname = goal_file[0].split("__")[1]
+  def set_greater_cname
+  # ver. 2015-10-06: use ./Goal__*__.txt
+    # ToDo: get from STDIN unless Goal__*__.txt
+    goal_file = Dir::glob("../Goal__*__.txt")
+    if goal_file.length > 1
+      p goal_file
+      false_with_msg("Test Goal must be one and only")
     end
+    false_with_msg("Goal__*__.txt is not exist") if goal_file[0] == nil
+    @gcname = goal_file[0].split("__")[1]
+  end
   
   
   
@@ -154,20 +157,31 @@ class K247_qgcm_preprocess
     out_fu.put_att( "gcname", gcname )
   end
   
-  
+  def ncout_para
+    fname = get_updated_para_fname
+    out_fu = NetCDF.create( fname )
+      p_hash = get_params
+      ret    = write_para( out_fu, p_hash )
+    out_fu.close
+    return true
+  end
+
+    def get_updated_para_fname
+      return "para_#{@gcname}_#{@cname}.nc"
+    end
   
   # write parameters
-  def write_para( dpath, out_fu, hash_para )
-    write_para_nodim(     out_fu, hash_para )
-    write_para_z(  dpath, out_fu, hash_para )
-    write_para_zi( dpath, out_fu, hash_para )
+  def write_para( out_fu, hash_para )
+    write_para_nodim( out_fu, hash_para )
+    write_para_z(     out_fu, hash_para )
+    write_para_zi(    out_fu, hash_para )
     return true # temporary
   end
   
-    def write_para_zi( dpath, out_fu, p_hash )
+    def write_para_zi( out_fu, p_hash )
       vname      = params_get_vname( "zi" )
       unit       = params_get_units( "zi" )
-      grid       = GPhys::IO.open( dpath + "ocpo.nc", 'zi').grid_copy
+      grid       = GPhys::IO.open( "ocpo.nc", 'zi').grid_copy
       val        = p_hash["val"]
       comment    = p_hash["comment"]
       vname.each do |vn|
@@ -178,12 +192,12 @@ class K247_qgcm_preprocess
       end
     end
   
-    def write_para_z( dpath, out_fu, p_hash )
+    def write_para_z( out_fu, p_hash )
       vname      = params_get_vname( "z" )
       unit       = params_get_units( "z" )
       val        = p_hash["val"]
       comment    = p_hash["comment"]
-      grid       = GPhys::IO.open( dpath + "ocpo.nc", 'z').grid_copy
+      grid       = GPhys::IO.open( "ocpo.nc", 'z').grid_copy
       vname.each do |vn|
         attr_tmp = {"units"=>unit[vn], "long_name"=>comment[vn]}
         nary     = conv_ary_str_to_nary( val[vn] )
@@ -236,37 +250,38 @@ class K247_qgcm_preprocess
   
   
   
+  # comment out with refactoring at 2015-10-27~ 
   ## read & modify ocpo.nc
-    def get_updated_po( dpath )
-      fpath = dpath + "ocpo.nc"
-      check_ocpo( fpath )
-      gp_po = GPhys::IO.open( fpath, 'p')
-      new_grid = modify_po_grid( gp_po )
-      return GPhys.new( new_grid, gp_po.data)
-    end
+  #  def get_updated_po( dpath )
+  #    fpath = dpath + "ocpo.nc"
+  #    check_ocpo( fpath )
+  #    gp_po = GPhys::IO.open( fpath, 'p')
+  #    new_grid = modify_po_grid( gp_po )
+  #    return GPhys.new( new_grid, gp_po.data)
+  #  end
+
+    #  def check_ocpo( fpath )
+    #    #GPhys::IO.is_a_NetCDF?( fpath ) # NoMethod?
+    #    exit_if_ocpo_lack_po( fpath )
+    #    check_po_size( fpath )
+    #  end
   
-      def check_ocpo( fpath )
-        #GPhys::IO.is_a_NetCDF?( fpath ) # NoMethod?
-        exit_if_ocpo_lack_po( fpath )
-        check_po_size( fpath )
-      end
+    #    def exit_if_ocpo_lack_po( fpath )
+    #      unless ocpo_has_po?( fpath )
+    #        false_with_msg("#{fpath} does not include p") 
+    #      end
+    #    end
   
-        def exit_if_ocpo_lack_po( fpath )
-          unless ocpo_has_po?( fpath )
-            false_with_msg("#{fpath} does not include p") 
-          end
-        end
-  
-          def ocpo_has_po?
-            return GPhys::IO.var_names( @dpath + "ocpo.nc" ).include?("p")
-          end
-        
-        def check_po_size( fpath )
-          size_criterion = 960 * 960 * 2 * 36
-          current_size = calc_po_size( fpath )
-          msg = "\n\n  INFO: Writing Huge Data ( please wait)\n\n"
-          print msg if current_size >= size_criterion
-        end
+    #      def ocpo_has_po?
+    #        return GPhys::IO.var_names( @dpath + "ocpo.nc" ).include?("p")
+    #      end
+    #    
+    #    def check_po_size( fpath )
+    #      size_criterion = 960 * 960 * 2 * 36
+    #      current_size = calc_po_size( fpath )
+    #      msg = "\n\n  INFO: Writing Huge Data ( please wait)\n\n"
+    #      print msg if current_size >= size_criterion
+    #    end
   
           def calc_po_size
             gp_po = GPhys::IO.open( @dpath + "ocpo.nc", 'p')
@@ -377,8 +392,8 @@ class K247_qgcm_preprocess
   
   
   ## read & modify input_parameters.m
-    def get_params( dpath )
-      para_lines = read_input_params( dpath )
+    def get_params
+      para_lines = read_input_params
       params_del_comments( para_lines )
       return params_get_wrap( para_lines )
     end
@@ -469,7 +484,6 @@ class K247_qgcm_preprocess
   
       def read_input_params
         lines = []
-      #  fu = File.open( @dpath + "input_parameters.m",'r' )
         fu = File.open( "input_parameters.m",'r' )
         while l = fu.gets
           lines.push( l.chomp ) 
@@ -560,66 +574,73 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
     assert_equal 114, lines.length, "check when change input_parmeters.m"
   end
 
-=begin
   def test_params_del_comments
     lines = @obj.read_input_params
     @obj.params_del_comments( lines )
-    assert_equal 110, lines.length
+    assert_equal 110, lines.length, "check del comments"
   end
 
-#mark
-  def params_get_nlo
-    lines = @obj.prep_read_input_params( @dpath_dummy )
-    assert_equal 2, @obj.prep_params_get_nlo( lines )
+  def test_params_get_nlo
+    lines = @obj.read_input_params
+    assert_equal 2, @obj.params_get_nlo( lines ), "check nlo"
       # fail when nlo is change
   end
 
   def test_params_get_nodim
-    lines    = @obj.prep_read_input_params( @dpath_dummy )
-    pno_hash = @obj.prep_params_get_nodim ( lines )
+    lines    = @obj.read_input_params
+    pno_hash = @obj.params_get_nodim ( lines )
     #  p pno_hash
     assert_equal 8, pno_hash["name"].length
   end
 
   def test_params_get_z
-    lines = @obj.prep_read_input_params( @dpath_dummy )
-    pz_hash = @obj.prep_params_get_z( lines )
+    lines = @obj.read_input_params
+    pz_hash = @obj.params_get_z( lines )
     #  p pz_hash
     assert_equal 5, pz_hash["name"].length
   end
 
   def test_params_get_zi
-    lines    = @obj.prep_read_input_params( @dpath_dummy )
-    pzi_hash = @obj.prep_params_get_zi( lines )
+    lines    = @obj.read_input_params
+    pzi_hash = @obj.params_get_zi( lines )
     #  p pzi_hash
     assert_equal 3, pzi_hash["name"].length
   end
 
   def test_params_get_wrap
-    lines    = @obj.prep_read_input_params( @dpath_dummy )
-    para_hash = @obj.prep_params_get_wrap( lines )
+    lines    = @obj.read_input_params
+    para_hash = @obj.params_get_wrap( lines )
     #  p para_hash
     assert_equal 16, para_hash["name"].length
   end
   
   def test_params_conv_line_z
     line = "ah4oc= [ah4oc   0.00000E+00]; %% Layers 2,n"
-    val = @obj.prep_params_conv_line_z( line )
+    val = @obj.params_conv_line_z( line )
     assert_equal " 0.00000E+00", val
   end
 
   def test_get_params
-    para_hash = @obj.prep_get_params( @dpath_dummy )
+    para_hash = @obj.get_params
     assert_equal 16, para_hash["name"].length
   end
 
+  def test_get_updated_para_fname
+    answer = "para_#{@gcname}_#{@cname}.nc"
+    assert_equal answer, @obj.get_updated_para_fname
+  end
+
+  # ToDo: What format?
   def test_write_para
-    out_fu = NetCDF.create( @dpath_dummy + "qgcm_para.nc" )
-    p_hash = @obj.prep_get_params( @dpath_dummy )
-    ret    = @obj.prep_write_para( @dpath_dummy, out_fu, p_hash )
+    fname = "para_test.nc"
+    out_fu = NetCDF.create( fname )
+      p_hash = @obj.get_params
+      ret    = @obj.write_para( out_fu, p_hash )
     out_fu.close
     assert ret
+  #  system( "rm #{fname}" ) # for check
   end
+=begin
 
   def test_ocpo_has_po?
     assert @obj.ocpo_has_po?
@@ -631,26 +652,26 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
 
   def test_modify_po_xy
     axes_parts = GPhys::IO.open( @ocpo_path, 'p' ).get_axes_parts_k247
-    upd_xy = @obj.prep_modify_po_xy( axes_parts['xp'] )
+    upd_xy = @obj.modify_po_xy( axes_parts['xp'] )
     assert_equal 0, ( upd_xy['val'][0] + upd_xy['val'][-1])
   end
 
   def test_modify_po_time
     axes_parts = GPhys::IO.open( @ocpo_path, 'p' ).get_axes_parts_k247
-    upd_time = @obj.prep_modify_po_time( axes_parts['time'] )
+    upd_time = @obj.modify_po_time( axes_parts['time'] )
     assert_equal "days", upd_time['atts']['units']
   end
 
 
 
   #def test_read_monit_all
-  #  p @obj.prep_read_monit_all( @dpath_dummy )
+  #  p @obj.read_monit_all( @dpath_dummy )
   #end
 
   def test_write_monit
     out_fu = NetCDF.create( @dpath_dummy + "qgcm_monit.nc" )
-    m_hash = @obj.prep_read_monit_all( @dpath_dummy )
-    ret    = @obj.prep_write_monit( out_fu, m_hash )
+    m_hash = @obj.read_monit_all( @dpath_dummy )
+    ret    = @obj.write_monit( out_fu, m_hash )
     out_fu.close
     assert ret
   end
