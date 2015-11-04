@@ -11,6 +11,7 @@ def K247_qgcm_preprocess_wrapper( cname )
   return K247_qgcm_preprocess.new( cname )
 end
 
+# call from K247_qgcm_preprocess_wrapper( cname )
 class K247_qgcm_preprocess
 # 2015-10-26: separate from K247_qgcm_data ( qgcm_k247.rb )
   attr_reader :cname, :dpath
@@ -56,48 +57,10 @@ class K247_qgcm_preprocess
   end
 
 # ToDo: 
-    # treat large datasize
-    # kill out_flag
+  # delete old method
   #
-  # argument: cname -- casename ( String, donot include "_" )
-  # action  : read outdata_YY/??? & write outdata_YY/qgcm_XX_YY_out.nc
-  # return  : none
-  def unify_outdata( cname=nil )
-    puts "beginning of unite outdata files"
-  
-    false_with_msg("input case name") if cname==nil
-    dpath     = set_dpath_with_check( cname )
-    out_nf    = set_unified_fpath_with_check( cname )
-      gp_ocpo    = get_updated_po( dpath )
-      hash_monit = monit_read_data( dpath )
-      hash_para  = get_params( dpath ) 
-    out_fu = NetCDF.create( out_nf )
-      GPhys::NetCDF_IO.write(       out_fu, gp_ocpo )
-      write_para(  dpath, out_fu, hash_para  )
-      monit_write_data(        out_fu, hash_monit )
-      write_misc(         out_fu, cname  )
-    out_fu.close
-  
-    puts "end of unite outdata files"
-    return true # temporary for test
-  end # def unify_outdata
-  
-  
   
   ## prepare
-    def set_dpath
-      @dpath = "./outdata_#{@cname}/"
-    end
-  
-    def set_dpath_with_check
-       set_dpath
-       if orgfile_exist?
-         return true
-       else
-         return false
-       end
-    end
-  
     def orgfile_exist?
       files = Dir::entries( Dir::pwd )
       @orgfile.each do | f |
@@ -110,22 +73,6 @@ class K247_qgcm_preprocess
       end
       return true
     end
-  
-  
-  def set_unified_fpath_with_check( cname )
-    fpath = set_unified_fpath( cname )
-    if File.exist?( fpath )
-      false_with_msg( "outfile: #{fpath} is already exist")
-    else
-      return fpath
-    end
-  end
-
-  def set_unified_fpath( cname )
-    dpath = set_dpath( cname )
-    gcname = set_greater_cname
-    return "#{dpath}q-gcm_#{gcname}_#{cname}_out.nc"
-  end
   
   def set_greater_cname
   # ver. 2015-10-06: use ./Goal__*__.txt
@@ -141,21 +88,6 @@ class K247_qgcm_preprocess
   
   
   
-  ## write monit
-  def monit_write_data( out_fu, hash_monit )
-    hash_monit.each_value do |item|
-      GPhys::NetCDF_IO.write( out_fu, item )
-    end
-    return true
-  end
-  
-  
-  # write misc
-  def write_misc( out_fu, cname )
-    gcname = set_greater_cname
-    out_fu.put_att( "cname" ,  cname )
-    out_fu.put_att( "gcname", gcname )
-  end
   
   def ncout_para
     fname = get_updated_para_fname
@@ -250,163 +182,9 @@ class K247_qgcm_preprocess
       end
     end
   
-  
-  
-  # comment out with refactoring at 2015-10-27~ 
-  ## read & modify ocpo.nc
-  #  def get_updated_po( dpath )
-  #    fpath = dpath + "ocpo.nc"
-  #    check_ocpo( fpath )
-  #    gp_po = GPhys::IO.open( fpath, 'p')
-  #    new_grid = modify_po_grid( gp_po )
-  #    return GPhys.new( new_grid, gp_po.data)
-  #  end
-
-    #  def check_ocpo( fpath )
-    #    #GPhys::IO.is_a_NetCDF?( fpath ) # NoMethod?
-    #    exit_if_ocpo_lack_po( fpath )
-    #    check_po_size( fpath )
-    #  end
-  
-    #    def exit_if_ocpo_lack_po( fpath )
-    #      unless ocpo_has_po?( fpath )
-    #        false_with_msg("#{fpath} does not include p") 
-    #      end
-    #    end
-  
-    #      def ocpo_has_po?
-    #        return GPhys::IO.var_names( @dpath + "ocpo.nc" ).include?("p")
-    #      end
-    #    
-    #    def check_po_size( fpath )
-    #      size_criterion = 960 * 960 * 2 * 36
-    #      current_size = calc_po_size( fpath )
-    #      msg = "\n\n  INFO: Writing Huge Data ( please wait)\n\n"
-    #      print msg if current_size >= size_criterion
-    #    end
-  
-          def calc_po_size
-            gp_po = GPhys::IO.open( @dpath + "ocpo.nc", 'p')
-            nxp   = gp_po.coord("xp"  ).val.length
-            nyp   = gp_po.coord("yp"  ).val.length
-            nz    = gp_po.coord("z"   ).val.length
-            ntime = gp_po.coord("time").val.length
-            return nxp*nyp*nz*ntime
-          end
-  
-      # 2015-10-20: tmp
-      def modify_po_grid_tmp( gp_po )
-        origin = gp_po.get_axes_parts_k247
-        modified = origin.clone
-        puts "  ocpo.nc@p: replace X,Y Axis ( 0 at center)"
-          modified['xp']   = modify_po_xy( origin['xp'] )
-          modified['yp']   = modify_po_xy( origin['yp'] )
-        return gp_po.restore_grid_k247( modified )
-      end # def modify_grid( apts )
-  
-      # argument: gp_po -- gphys object of ocpo.nc@p (*) 
-      #                    (*) q-gcm/src/outdata_*/ocpo.nc@p
-      def modify_po_grid( gp_po )
-        origin = gp_po.get_axes_parts_k247
-        modified = origin.clone
-        puts "  ocpo.nc@p: replace X,Y Axis ( 0 at center)"
-        puts "  ocpo.nc@p: convert unit of TIME Axis to [days]"
-          modified['xp']   = modify_po_xy( origin['xp'] )
-          modified['yp']   = modify_po_xy( origin['yp'] )
-          modified['time'] = modify_po_time( origin['time'] )
-        return gp_po.restore_grid_k247( modified )
-      end # def modify_grid( apts )
-        
-        def modify_po_xy( xy_hash )
-          n = xy_hash['val'].length
-          d = xy_hash['val'][1] - xy_hash['val'][0]
-          xy_hash['val'] -= d * ( n - 1 ).to_f / 2.0
-          return xy_hash
-        end
-      
-        def modify_po_time( time_hash )
-          time_hash['val'] *= 365.0
-          time_hash['atts']['units'] = 'days'
-          return time_hash
-        end
-  
-  
-  
-## monit.nc
-  def monit_ncout
-    out_fu = NetCDF.create( get_updated_monit_fname )
-    gp_mon = monit_read_data
-    ret    = monit_write_data( out_fu, gp_mon )
-    out_fu.close
-  end
-
-    def get_updated_monit_fname
-      return "q-gcm_monit_#{@gcname}_#{@cname}.nc"
-    end
-
-  def monit_read_data
-    fname = "monit.nc"
-    gp_monit = {}
-    (monit_get_vname).each do | v |
-      gp_monit[ v ] = read_monit_var( fname, v)
-    end
-    return gp_monit
-  end
-  
-    def monit_get_vname
-      return ['ddtkeoc', 'ddtpeoc', 'emfroc', 'ermaso', \
-              'et2moc' , 'etamoc' , 'kealoc', 'pkenoc']
-    end
-  
-    def read_monit_var( nf_name, vname )
-      gp_monv_org = GPhys::IO.open( nf_name, vname)
-        new_grid     = modify_monit_grid( gp_monv_org )
-        gp_monv_data = modify_monit_data( gp_monv_org )
-      return GPhys.new( new_grid, gp_monv_data )
-    end
-  
-      def modify_monit_data( gp_monv_org )
-        case gp_monv_org.name
-        when "et2moc"
-          return gp_monv_org.chg_varray_k247( {"units"=>"m2", \
-            "comment_by_k247"=>"units corrected from W/m^2"} )
-        when "kealoc"
-          return gp_monv_org.chg_varray_k247( {"units"=>"kg.s-2", \
-            "comment_by_k247"=>"units corrected from J/m^2"} )
-        when "pkenoc"
-          return gp_monv_org.chg_varray_k247( \
-            {"comment_by_k247"=>"this variable is broken"} )
-        else
-          return gp_monv_org.data
-        end
-      end
-  
-      def modify_monit_grid( gp_monv )
-        origin   = gp_monv.get_axes_parts_k247
-        modified = origin.clone
-          modified["time"] = modify_monit_time( origin["time"] )
-          modify_monit_z( modified )
-        return gp_monv.restore_grid_k247( modified )
-      end
-  
-        def modify_monit_time( time_hash )
-          time_hash["name"]           = "time_monitor"
-          time_hash["val" ]          *= 365.0
-          time_hash["atts"]["units"]  = "days"
-          return time_hash
-        end
-  
-        def modify_monit_z( axes_parts )
-          axes_parts["zo" ]["name"] = "z"  if axes_parts.has_key?('zo')
-          axes_parts["zom"]["name"] = "zi" if axes_parts.has_key?('zom')
-          ## adjust vertical axis name with ocpo.nc
-        end
-  
-  
-  
   ## read & modify input_parameters.m
     def get_params
-      para_lines = read_input_params
+      para_lines = params_read_input
       params_del_comments( para_lines )
       return params_get_wrap( para_lines )
     end
@@ -496,7 +274,7 @@ class K247_qgcm_preprocess
         return nlo_str.to_i
       end
   
-      def read_input_params
+      def params_read_input
         lines = []
         fu = File.open( "input_parameters.m",'r' )
         while l = fu.gets
@@ -514,6 +292,170 @@ class K247_qgcm_preprocess
           lines.delete( d  )
         end
       end
+  
+  
+  
+## monit.nc
+  def monit_ncout
+    out_fu = NetCDF.create( monit_get_updated_fname )
+    gp_mon = monit_read_data
+    ret    = monit_write_data( out_fu, gp_mon )
+    out_fu.close
+  end
+
+
+  def monit_get_updated_fname
+    return "q-gcm_monit_#{@gcname}_#{@cname}.nc"
+  end
+
+  def monit_write_data( out_fu, hash_monit )
+    hash_monit.each_value do |item|
+      GPhys::NetCDF_IO.write( out_fu, item )
+    end
+    return true
+  end
+
+  def monit_read_data
+    fname = "monit.nc"
+    gp_monit = {}
+    monit_get_vname.each do | v |
+      gp_monit[ v ] = read_monit_var( fname, v)
+    end
+    return gp_monit
+  end
+  
+    def monit_get_vname
+      return ['ddtkeoc', 'ddtpeoc', 'emfroc', 'ermaso', \
+              'et2moc' , 'etamoc' , 'kealoc', 'pkenoc']
+    end
+  
+    def read_monit_var( nf_name, vname )
+      gp_monv_org = GPhys::IO.open( nf_name, vname)
+        new_grid     = monit_modify_grid( gp_monv_org )
+        gp_monv_data = monit_modify_data( gp_monv_org )
+      return GPhys.new( new_grid, gp_monv_data )
+    end
+  
+      def monit_modify_data( gp_monv_org )
+        case gp_monv_org.name
+        when "et2moc"
+          return gp_monv_org.chg_varray_k247( {"units"=>"m2", \
+            "comment_by_k247"=>"units corrected from W/m^2"} )
+        when "kealoc"
+          return gp_monv_org.chg_varray_k247( {"units"=>"kg.s-2", \
+            "comment_by_k247"=>"units corrected from J/m^2"} )
+        when "pkenoc"
+          return gp_monv_org.chg_varray_k247( \
+            {"comment_by_k247"=>"this variable is broken"} )
+        else
+          return gp_monv_org.data
+        end
+      end
+  
+      def monit_modify_grid( gp_monv )
+        origin   = gp_monv.get_axes_parts_k247
+        modified = origin.clone
+          modified["time"] = monit_modify_time( origin["time"] )
+          monit_modify_z( modified )
+        return gp_monv.restore_grid_k247( modified )
+      end
+  
+        def monit_modify_time( time_hash )
+          time_hash["name"]           = "time_monitor"
+          time_hash["val" ]          *= 365.0
+          time_hash["atts"]["units"]  = "days"
+          return time_hash
+        end
+  
+        def monit_modify_z( axes_parts )
+          axes_parts["zo" ]["name"] = "z"  if axes_parts.has_key?('zo')
+          axes_parts["zom"]["name"] = "zi" if axes_parts.has_key?('zom')
+          ## adjust vertical axis name with ocpo.nc
+        end
+ 
+
+
+  # comment out with refactoring at 2015-10-27~ 
+  ## read & modify ocpo.nc
+  #  def get_updated_po( dpath )
+  #    fpath = dpath + "ocpo.nc"
+  #    check_ocpo( fpath )
+  #    gp_po = GPhys::IO.open( fpath, 'p')
+  #    new_grid = modify_po_grid( gp_po )
+  #    return GPhys.new( new_grid, gp_po.data)
+  #  end
+
+    #  def check_ocpo( fpath )
+    #    #GPhys::IO.is_a_NetCDF?( fpath ) # NoMethod?
+    #    exit_if_ocpo_lack_po( fpath )
+    #    check_po_size( fpath )
+    #  end
+  
+    #    def exit_if_ocpo_lack_po( fpath )
+    #      unless ocpo_has_po?( fpath )
+    #        false_with_msg("#{fpath} does not include p") 
+    #      end
+    #    end
+  
+    #      def ocpo_has_po?
+    #        return GPhys::IO.var_names( @dpath + "ocpo.nc" ).include?("p")
+    #      end
+    #    
+    #    def check_po_size( fpath )
+    #      size_criterion = 960 * 960 * 2 * 36
+    #      current_size = calc_po_size( fpath )
+    #      msg = "\n\n  INFO: Writing Huge Data ( please wait)\n\n"
+    #      print msg if current_size >= size_criterion
+    #    end
+  
+    #      def calc_po_size
+    #        gp_po = GPhys::IO.open( @dpath + "ocpo.nc", 'p')
+    #        nxp   = gp_po.coord("xp"  ).val.length
+    #        nyp   = gp_po.coord("yp"  ).val.length
+    #        nz    = gp_po.coord("z"   ).val.length
+    #        ntime = gp_po.coord("time").val.length
+    #        return nxp*nyp*nz*ntime
+    #      end
+  
+    #  # 2015-10-20: tmp
+    #  def modify_po_grid_tmp( gp_po )
+    #    origin = gp_po.get_axes_parts_k247
+    #    modified = origin.clone
+    #    puts "  ocpo.nc@p: replace X,Y Axis ( 0 at center)"
+    #      modified['xp']   = modify_po_xy( origin['xp'] )
+    #      modified['yp']   = modify_po_xy( origin['yp'] )
+    #    return gp_po.restore_grid_k247( modified )
+    #  end # def modify_grid( apts )
+  
+    #  # argument: gp_po -- gphys object of ocpo.nc@p (*) 
+    #  #                    (*) q-gcm/src/outdata_*/ocpo.nc@p
+    #  def modify_po_grid( gp_po )
+    #    origin = gp_po.get_axes_parts_k247
+    #    modified = origin.clone
+    #    puts "  ocpo.nc@p: replace X,Y Axis ( 0 at center)"
+    #    puts "  ocpo.nc@p: convert unit of TIME Axis to [days]"
+    #      modified['xp']   = modify_po_xy( origin['xp'] )
+    #      modified['yp']   = modify_po_xy( origin['yp'] )
+    #      modified['time'] = modify_po_time( origin['time'] )
+    #    return gp_po.restore_grid_k247( modified )
+    #  end # def modify_grid( apts )
+    #    
+    #    def modify_po_xy( xy_hash )
+    #      n = xy_hash['val'].length
+    #      d = xy_hash['val'][1] - xy_hash['val'][0]
+    #      xy_hash['val'] -= d * ( n - 1 ).to_f / 2.0
+    #      return xy_hash
+    #    end
+    #  
+    #    def modify_po_time( time_hash )
+    #      time_hash['val'] *= 365.0
+    #      time_hash['atts']['units'] = 'days'
+    #      return time_hash
+    #    end
+  
+  
+  
+  
 end
 
 
@@ -583,46 +525,46 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
   end
 
 # parameter
-  def test_read_input_params
-    lines = @obj.read_input_params
+  def test_params_read_input
+    lines = @obj.params_read_input
     assert_equal 114, lines.length, "check when change input_parmeters.m"
   end
 
   def test_params_del_comments
-    lines = @obj.read_input_params
+    lines = @obj.params_read_input
     @obj.params_del_comments( lines )
     assert_equal 110, lines.length, "check del comments"
   end
 
   def test_params_get_nlo
-    lines = @obj.read_input_params
+    lines = @obj.params_read_input
     assert_equal 2, @obj.params_get_nlo( lines ), "check nlo"
       # fail when nlo is change
   end
 
   def test_params_get_nodim
-    lines    = @obj.read_input_params
+    lines    = @obj.params_read_input
     pno_hash = @obj.params_get_nodim ( lines )
     #  p pno_hash
     assert_equal 11, pno_hash["name"].length
   end
 
   def test_params_get_z
-    lines = @obj.read_input_params
+    lines = @obj.params_read_input
     pz_hash = @obj.params_get_z( lines )
     #  p pz_hash
     assert_equal 5, pz_hash["name"].length
   end
 
   def test_params_get_zi
-    lines    = @obj.read_input_params
+    lines    = @obj.params_read_input
     pzi_hash = @obj.params_get_zi( lines )
     #  p pzi_hash
     assert_equal 3, pzi_hash["name"].length
   end
 
   def test_params_get_wrap
-    lines    = @obj.read_input_params
+    lines    = @obj.params_read_input
     para_hash = @obj.params_get_wrap( lines )
     #  p para_hash
     assert_equal 19, para_hash["name"].length
@@ -662,9 +604,9 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
     assert_equal 8, gp_monit.length
   end
 
-  def test_get_updated_monit_fname
+  def test_monit_get_updated_fname
     answer = "q-gcm_monit_#{@gcname}_#{@cname}.nc"
-    assert_equal answer, @obj.get_updated_monit_fname
+    assert_equal answer, @obj.monit_get_updated_fname
   end
 
   def test_monit_write_data
@@ -677,28 +619,11 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
     #system( "rm -f #{fname}") # temporary
   end
 
+  #def test_monit_modify_*
+  #  gp_mon = @obj.monit_read_data
+  #end
+
 =begin
-  def test_ocpo_has_po?
-    assert @obj.ocpo_has_po?
-  end
-
-  def test_calc_po_size
-    assert_equal 481*481*2*3, @obj.calc_po_size
-  end
-
-  def test_modify_po_xy
-    axes_parts = GPhys::IO.open( @ocpo_path, 'p' ).get_axes_parts_k247
-    upd_xy = @obj.modify_po_xy( axes_parts['xp'] )
-    assert_equal 0, ( upd_xy['val'][0] + upd_xy['val'][-1])
-  end
-
-  def test_modify_po_time
-    axes_parts = GPhys::IO.open( @ocpo_path, 'p' ).get_axes_parts_k247
-    upd_time = @obj.modify_po_time( axes_parts['time'] )
-    assert_equal "days", upd_time['atts']['units']
-  end
-
-
 # not member of qgcm
   def test_get_include
     ary = ["ab", "acx", "ad"]
@@ -716,6 +641,7 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
     assert_equal [1,3], idx
   end
 =end
+
 end # Test_K247_qgcm_prep
 
 
