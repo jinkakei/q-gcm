@@ -4,7 +4,7 @@ require_relative "lib_qgcm_k247"
 include K247_qgcm_common
 
 
-def K247_qgcm_preprocess_wrapper( cname )
+def k247_qgcm_preprocess_wrapper( cname )
 # for test ( maybe more general )
   K247_qgcm_common::cd_qgcm_work
   Dir::chdir( "outdata_#{cname}")
@@ -15,7 +15,7 @@ end
 class K247_qgcm_preprocess
 # 2015-10-26: separate from K247_qgcm_data ( qgcm_k247.rb )
   attr_reader :cname, :dpath
-  attr_reader :gcname, :pfnew, :orgfile
+  attr_reader :gcname, :orgfile
 
 # How to use
 #  - call from wrapper ( basically )
@@ -37,19 +37,13 @@ class K247_qgcm_preprocess
 
   def initialize( cname )
     @cname = cname
-  # setup
-  #  init_settings
+  # init_settings
     @orgfile = [ "ocpo.nc", "monit.nc", "input_parameters.m" ]
     set_greater_cname
-    set_para_fpath
   end
 
   def init_settings
   #  set_dpath # 2015-10-27: erase after refactoring of qgcm_prep
-  end
-
-  def set_para_fpath
-    @pfnew = "parameters_#{@gcname}_#{@cname}.nc"
   end
 
   def exist?
@@ -59,21 +53,6 @@ class K247_qgcm_preprocess
 # ToDo: 
   # delete old method
   #
-  
-  ## prepare
-    def orgfile_exist?
-      files = Dir::entries( Dir::pwd )
-      @orgfile.each do | f |
-        if ary_get_include_index( files, f )
-        #  puts "  #{f} exist"
-        else
-          puts "  #{f} does not exist"
-          return false 
-        end
-      end
-      return true
-    end
-  
   def set_greater_cname
   # ver. 2015-10-06: use ./Goal__*__.txt
     # ToDo: get from STDIN unless Goal__*__.txt
@@ -86,33 +65,46 @@ class K247_qgcm_preprocess
     @gcname = goal_file[0].split("__")[1]
   end
   
+  def orgfile_exist?
+    files = Dir::entries( Dir::pwd )
+    @orgfile.each do | f |
+      if ary_get_include_index( files, f )
+      #  puts "  #{f} exist"
+      else
+        puts "  #{f} does not exist"
+        return false 
+      end
+    end
+    return true
+  end
   
   
   
-  def ncout_para
-    fname = get_updated_para_fname
+# parameters  
+  def para_ncout
+    fname = para_get_updated_fname
     out_fu = NetCDF.create( fname )
-      p_hash = get_params
-      ret    = write_para( out_fu, p_hash )
+      p_hash = para_get
+      ret    = para_write( out_fu, p_hash )
     out_fu.close
     return true
   end
 
-    def get_updated_para_fname
+    def para_get_updated_fname
       return "q-gcm_para_#{@gcname}_#{@cname}.nc"
     end
   
   # write parameters
-  def write_para( out_fu, hash_para )
-    write_para_nodim( out_fu, hash_para )
-    write_para_z(     out_fu, hash_para )
-    write_para_zi(    out_fu, hash_para )
+  def para_write( out_fu, hash_para )
+    para_write_nodim( out_fu, hash_para )
+    para_write_z(     out_fu, hash_para )
+    para_write_zi(    out_fu, hash_para )
     return true # temporary
   end
   
-    def write_para_zi( out_fu, p_hash )
-      vname      = params_get_vname( "zi" )
-      unit       = params_get_units( "zi" )
+    def para_write_zi( out_fu, p_hash )
+      vname      = para_get_vname( "zi" )
+      unit       = para_get_units( "zi" )
       grid       = GPhys::IO.open( "ocpo.nc", 'zi').grid_copy
       val        = p_hash["val"]
       comment    = p_hash["comment"]
@@ -124,9 +116,9 @@ class K247_qgcm_preprocess
       end
     end
   
-    def write_para_z( out_fu, p_hash )
-      vname      = params_get_vname( "z" )
-      unit       = params_get_units( "z" )
+    def para_write_z( out_fu, p_hash )
+      vname      = para_get_vname( "z" )
+      unit       = para_get_units( "z" )
       val        = p_hash["val"]
       comment    = p_hash["comment"]
       grid       = GPhys::IO.open( "ocpo.nc", 'z').grid_copy
@@ -153,9 +145,9 @@ class K247_qgcm_preprocess
         return nary
       end
   
-    def write_para_nodim( out_fu, p_hash )
-      vname_no = params_get_vname( "nodim" )
-      unit = params_get_units( "nodim" )
+    def para_write_nodim( out_fu, p_hash )
+      vname_no = para_get_vname( "nodim" )
+      unit = para_get_units( "nodim" )
       val = p_hash["val"]
       comment = p_hash["comment"]
       vname_no.each do |vn|
@@ -163,7 +155,7 @@ class K247_qgcm_preprocess
       end
     end
   
-    def params_get_units( type )
+    def para_get_units( type )
       case type
       when "nodim"
         return { "fnot"=>"s-1", "beta"=>"s-1.m-1", \
@@ -178,25 +170,25 @@ class K247_qgcm_preprocess
       when "zi"
         return {"cphsoc"=>"cm.s-1", "gpoc"=>"m.s-2", "rdefoc"=>"m"}
       else
-        puts "!ERROR! prep_params_get_units: wrong argument!" 
+        puts "!ERROR! prep_para_get_units: wrong argument!" 
       end
     end
   
   ## read & modify input_parameters.m
-    def get_params
-      para_lines = params_read_input
-      params_del_comments( para_lines )
-      return params_get_wrap( para_lines )
+    def para_get
+      para_lines = para_read_input
+      para_del_comments( para_lines )
+      return para_get_wrap( para_lines )
     end
   
-      def params_get_wrap( lines )
-        pno = params_get_nodim( lines )
-        pz  = params_get_z(     lines )
-        pzi = params_get_zi(    lines )
-        return params_merge_hash( pno, pz, pzi )
+      def para_get_wrap( lines )
+        pno = para_get_nodim( lines )
+        pz  = para_get_z(     lines )
+        pzi = para_get_zi(    lines )
+        return para_merge_hash( pno, pz, pzi )
       end
   
-        def params_merge_hash( pno, pz, pzi )
+        def para_merge_hash( pno, pz, pzi )
           para_hash = {}
           para_hash["name"] = pno["name"] + pz ["name"] + pzi["name"]
           [ "val", "comment" ].each do |key|
@@ -205,20 +197,20 @@ class K247_qgcm_preprocess
           return para_hash
         end
   
-      def params_get_common( lines, vname )
+      def para_get_common( lines, vname )
         val = {}; com = {}
         vname.each do |v|
           idx = ary_get_include_index( lines, v )
           kn = idx.length
           if kn > 1
             ary =[]
-            dummy, ary[0], com[v] = params_conv_line(lines[idx[0]])
+            dummy, ary[0], com[v] = para_conv_line(lines[idx[0]])
             for k in 1..kn-1
-              ary[k] = params_conv_line_z( lines[idx[k]] )
+              ary[k] = para_conv_line_z( lines[idx[k]] )
             end
             val[v] = ary
           else
-            dummy, val[v], com[v] = params_conv_line(lines[idx[0]])
+            dummy, val[v], com[v] = para_conv_line(lines[idx[0]])
           end
         end
         para = {}
@@ -228,7 +220,7 @@ class K247_qgcm_preprocess
         return para
       end
         
-      def params_get_vname( type )
+      def para_get_vname( type )
         return [ "gpoc", "cphsoc", "rdefoc"] if type == "zi"
         return [ "fnot", "beta", "dxo","dto", "rhooc", \
                 "cpoc", "l_spl", "c1_spl", \
@@ -236,45 +228,45 @@ class K247_qgcm_preprocess
         return [ "ah2oc", "ah4oc", "tabsoc", "tocc", "hoc" ] if type == "z"
       end
   
-      def params_get_zi( lines )
-        vname_zi = params_get_vname( "zi" )
-        return params_get_common( lines, vname_zi )
+      def para_get_zi( lines )
+        vname_zi = para_get_vname( "zi" )
+        return para_get_common( lines, vname_zi )
       end
   
-      def params_get_z( lines )
-        vname_z  = params_get_vname( "z" )
-        return params_get_common( lines, vname_z  )
+      def para_get_z( lines )
+        vname_z  = para_get_vname( "z" )
+        return para_get_common( lines, vname_z  )
       end
   
-      def params_get_nodim( lines )
-        vname_no = params_get_vname( "nodim" )
-        return params_get_common( lines, vname_no )
+      def para_get_nodim( lines )
+        vname_no = para_get_vname( "nodim" )
+        return para_get_common( lines, vname_no )
       end
   
-      def params_conv_line( line )
+      def para_conv_line( line )
         name, tmp1    = line.split("=")
         val , tmp2    = tmp1.split(";")
         left, comment = tmp2.split("%% ")
         return name, val, comment
       end
   
-      def params_conv_line_z( line )
+      def para_conv_line_z( line )
         tmp1 , dummy    = line.split("];")
         dummy, tmp2     = tmp1.split("= ")
         dummy, val = tmp2.split("  ")
         return val
       end
   
-      def params_get_nlo( lines )
+      def para_get_nlo( lines )
         i_nlo = 0
         lines.each_with_index do | l,n |
           i_nlo = n if l.include?("nlo")
         end
-        name, nlo_str, comment = params_conv_line( lines[i_nlo] )
+        name, nlo_str, comment = para_conv_line( lines[i_nlo] )
         return nlo_str.to_i
       end
   
-      def params_read_input
+      def para_read_input
         lines = []
         fu = File.open( "input_parameters.m",'r' )
         while l = fu.gets
@@ -284,7 +276,7 @@ class K247_qgcm_preprocess
         return lines
       end
   
-      def params_del_comments( lines )
+      def para_del_comments( lines )
         del_lines = [ "%%Matlab script to read in parameters", \
                       "%%Derived parameters", \
                       " ", "%%Parameters added by K247"]
@@ -510,11 +502,6 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
     assert_equal @gcname, @obj.gcname
   end
 
-  def test_check_init_para_fpath
-    answer = "parameters_#{@gcname}_#{@cname}.nc"
-    assert_equal answer, @obj.pfnew
-  end
-
   def test_check_init_orgfile
     answer = [ "ocpo.nc", "monit.nc", "input_parameters.m" ]
     assert_equal answer, @obj.orgfile
@@ -525,73 +512,73 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
   end
 
 # parameter
-  def test_params_read_input
-    lines = @obj.params_read_input
+  def test_para_read_input
+    lines = @obj.para_read_input
     assert_equal 114, lines.length, "check when change input_parmeters.m"
   end
 
-  def test_params_del_comments
-    lines = @obj.params_read_input
-    @obj.params_del_comments( lines )
+  def test_para_del_comments
+    lines = @obj.para_read_input
+    @obj.para_del_comments( lines )
     assert_equal 110, lines.length, "check del comments"
   end
 
-  def test_params_get_nlo
-    lines = @obj.params_read_input
-    assert_equal 2, @obj.params_get_nlo( lines ), "check nlo"
+  def test_para_get_nlo
+    lines = @obj.para_read_input
+    assert_equal 2, @obj.para_get_nlo( lines ), "check nlo"
       # fail when nlo is change
   end
 
-  def test_params_get_nodim
-    lines    = @obj.params_read_input
-    pno_hash = @obj.params_get_nodim ( lines )
+  def test_para_get_nodim
+    lines    = @obj.para_read_input
+    pno_hash = @obj.para_get_nodim ( lines )
     #  p pno_hash
     assert_equal 11, pno_hash["name"].length
   end
 
-  def test_params_get_z
-    lines = @obj.params_read_input
-    pz_hash = @obj.params_get_z( lines )
+  def test_para_get_z
+    lines = @obj.para_read_input
+    pz_hash = @obj.para_get_z( lines )
     #  p pz_hash
     assert_equal 5, pz_hash["name"].length
   end
 
-  def test_params_get_zi
-    lines    = @obj.params_read_input
-    pzi_hash = @obj.params_get_zi( lines )
+  def test_para_get_zi
+    lines    = @obj.para_read_input
+    pzi_hash = @obj.para_get_zi( lines )
     #  p pzi_hash
     assert_equal 3, pzi_hash["name"].length
   end
 
-  def test_params_get_wrap
-    lines    = @obj.params_read_input
-    para_hash = @obj.params_get_wrap( lines )
+  def test_para_get_wrap
+    lines    = @obj.para_read_input
+    para_hash = @obj.para_get_wrap( lines )
     #  p para_hash
     assert_equal 19, para_hash["name"].length
   end
   
-  def test_params_conv_line_z
+  def test_para_conv_line_z
     line = "ah4oc= [ah4oc   0.00000E+00]; %% Layers 2,n"
-    val = @obj.params_conv_line_z( line )
+    val = @obj.para_conv_line_z( line )
     assert_equal " 0.00000E+00", val
   end
 
-  def test_get_params
-    para_hash = @obj.get_params
+  def test_para_get
+    para_hash = @obj.para_get
     assert_equal 19, para_hash["name"].length
   end
 
-  def test_get_updated_para_fname
+  def test_para_get_updated_fname
     answer = "q-gcm_para_#{@gcname}_#{@cname}.nc"
-    assert_equal answer, @obj.get_updated_para_fname
+    assert_equal answer, @obj.para_get_updated_fname
   end
 
   # ToDo: What format?
-  def test_write_para
+  def test_para_write
     fname = "test_para.nc"
     out_fu = NetCDF.create( fname )
-      p_hash = @obj.get_params
-      ret    = @obj.write_para( out_fu, p_hash )
+      p_hash = @obj.para_get
+      ret    = @obj.para_write( out_fu, p_hash )
     out_fu.close
     assert ret
   #  system( "rm #{fname}" ) # for check
