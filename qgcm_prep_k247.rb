@@ -1,6 +1,5 @@
-require 'minitest/autorun'
-require_relative 'qgcm_k247.rb'
-require_relative "lib_qgcm_k247"
+#require 'minitest/autorun'
+require_relative 'qgcm_k247'
 include K247_qgcm_common
 
 
