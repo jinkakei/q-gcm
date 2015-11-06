@@ -8,6 +8,7 @@ require_relative "varray_proto_k247"
 # for GPhys::restore_grid_k247
 def def_axparts_cuteddy
   axes_parts = {"names" => [ "xprel", "yprel", "z", "time" ]}
+
   hash_xpr = { "name"=> nil, "atts"=>nil, "val"=>nil}
 		  hash_xpr["name"] = "xprel"
 		  hash_xpr["atts"] = { "units"=>"km", \
@@ -28,6 +29,7 @@ def def_axparts_cuteddy
 		  hash_t["atts"] = { "units"=>"days", \
                          "long_name"=>"Time Axis"}
   axes_parts["time"] = hash_t
+
   return axes_parts
 end # def def_axparts_cuteddy
 
@@ -47,6 +49,7 @@ watcher = K247_Main_Watch.new
   hmax_i = GPhys::IO.open( hmax_fname, "hmax_i" ).val 
   hmax_j = GPhys::IO.open( hmax_fname, "hmax_j" ).val
   na_day = GPhys::IO.open( hmax_fname, "hmax_i" ).coord( "time" ).val
+  nday = na_day.length
 
 
 # get original file
@@ -62,34 +65,45 @@ watcher = K247_Main_Watch.new
     dx = xp[1] - xp[0]
     elen_km = 240.0
     elen = ( elen_km / dx ).to_i
-  # 
-    xprel = dx * NArray.sfloat( 2*elen + 1 ).indgen - dx * elen
+      nxr = 2 * elen + 1
+    nz = gp_p.coord( "z" ).length
+  # set new grid
+    xprel = dx * NArray.sfloat( nxr ).indgen - dx * elen
     yprel = xprel.clone
     axes_parts = def_axparts_cuteddy
     axes_parts["xprel"]["val"] = xprel
     axes_parts["yprel"]["val"] = yprel
     axes_parts[  "z"  ]["val"] = gp_p.coord( "z" ).val
-    axes_parts["time" ]["val"] = na_day
-    p axes_parts
-    #origrid = gp_p.get_axes_parts_k247
-    #p origrid["names"]
+ nday = 30
+    axes_parts["time" ]["val"] = na_day[0..nday-1]
+    new_grid = gp_p.restore_grid_k247( axes_parts )
+    p new_grid
+  # set VArray Proto
+    pcut_attr = {"units"=>"m2.s-2", \
+                 "long_name"=>"Ocean Dynamic Pressure near pmax", \
+                 "radius"=>elen_km.to_s \
+                }
+    vap_pcut = VArray_Proto_K247.new( nil, pcut_attr, "p", new_grid )
+
+# test output
+  pcut = NArray.sfloat( nxr, nxr, nz, nday )
+  tn = 0
+  pcut[ 0..-1, 0..-1,0..-1, tn ]= \
+        gp_p.val[ hmax_i[tn]-elen..hmax_i[tn]+elen, hmax_j[tn]-elen..hmax_j[tn]+elen, 0..-1 ]
+  # ??? subset ( by "cut" ) cannot convert NArray ( by "val" )???
+  for tn in 1..nday-1
+    gp_p = GPhys::IO.open( flist[tn], "p" )
+    pcut[ 0..-1, 0..-1,0..-1, tn ]= \
+          gp_p.val[ hmax_i[tn]-elen..hmax_i[tn]+elen, hmax_j[tn]-elen..hmax_j[tn]+elen, 0..-1 ]
+  end
+  vap_pcut.chg_nary( pcut )
+  out_fname = "test_pcut.nc"
+  vap_pcut.netcdf_write_create( out_fname )
 
 =begin
-# test output
-  #p gp_p.cut( "xp" => xp[hmax_i[0]-elen..hmax_i[0]+elen], \
-  #            "yp" => yp[hmax_j[0]-elen..hmax_j[0]+elen] )
-  #gp_pcut = gp_p.cut( "xp" => xp[hmax_i[0]-elen..hmax_i[0]+elen], \
-  #                    "yp" => yp[hmax_j[0]-elen..hmax_j[0]+elen] )
-    
   nc_fu = NetCDF.create( "test.nc" )
-  # tmp
-    z = gp_p.coord( "z" ).val
   GPhys::NetCDF_IO.write( nc_fu, \
                           gp_p.cut( "z"=>z[0] ) )
-  # Error? @2015-11-06
-#  GPhys::NetCDF_IO.write( nc_fu, \
-#    gp_p.cut( "xp" => xp[hmax_i[0]-elen..hmax_i[0]+elen],  \
-#              "yp" => yp[hmax_j[0]-elen..hmax_j[0]+elen] ) )  
   nc_fu.close
 
 
