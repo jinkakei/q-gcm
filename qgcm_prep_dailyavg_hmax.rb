@@ -28,6 +28,8 @@ def sshmax_get_with_ij_from_fname( fname )
   hmax = pmax * m_to_cm / grav
   return hmax, i, j
 end
+
+
 watcher = K247_Main_Watch.new
 
 #outdir = "./outdata_nctest44/" # raw: 2km, 481x481, 730day
