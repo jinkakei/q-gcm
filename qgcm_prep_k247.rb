@@ -5,7 +5,9 @@ include K247_qgcm_common
 def k247_qgcm_preprocess_wrapper( cname )
 # for test ( maybe more general )
   K247_qgcm_common::cd_outdata( cname )
-  return K247_qgcm_preprocess.new( cname )
+  prep = K247_qgcm_preprocess.new( cname )
+  prep.monit_ncout
+  prep.para_ncout
 end
 
 # ! RULE ! call from K247_qgcm_preprocess_wrapper( cname )
@@ -82,7 +84,7 @@ class K247_qgcm_preprocess
   end
 
     def para_get_updated_fname
-      return "q-gcm_para_#{@gcname}_#{@cname}.nc"
+       return Updfile::Param
     end
   
   # write parameters
@@ -287,7 +289,7 @@ class K247_qgcm_preprocess
   end
 
   def monit_get_updated_fname
-    return "q-gcm_monit_#{@gcname}_#{@cname}.nc"
+     return Updfile::Monit
   end
 
   def monit_write_data( out_fu, hash_monit )
@@ -560,7 +562,7 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
   end
 
   def test_para_get_updated_fname
-    answer = "q-gcm_para_#{@gcname}_#{@cname}.nc"
+    answer = "param_k247.nc"
     assert_equal answer, @obj.para_get_updated_fname
   end
 
@@ -583,7 +585,8 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
   end
 
   def test_monit_get_updated_fname
-    answer = "q-gcm_monit_#{@gcname}_#{@cname}.nc"
+  #  answer = "q-gcm_monit_#{@gcname}_#{@cname}.nc"
+    answer = "monit_k247.nc"
     assert_equal answer, @obj.monit_get_updated_fname
   end
 

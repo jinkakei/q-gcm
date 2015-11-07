@@ -7,6 +7,11 @@ include NumRu
 module K247_qgcm_common
   QGCM_HOME_PATH = "/LARGE0/gr10056/t51063/q-gcm/"
 
+  module Updfile
+    Param = "param_k247.nc"
+    Monit = "monit_k247.nc"
+  end
+
   def cd_qgcm_home
     Dir::chdir( QGCM_HOME_PATH )
   end
@@ -25,11 +30,12 @@ module K247_qgcm_common
     goal_file = Dir::glob("./Goal__*__.txt")
     if goal_file.length > 1
       p goal_file
-      false_with_msg("Test Goal must be one and only")
+      false_with_msg("The Goal must be one and only")
     end
     false_with_msg("Goal__*__.txt is not exist") if goal_file[0] == nil
     return goal_file
   end
+
 end # module K247_qgcm_common
 
 
