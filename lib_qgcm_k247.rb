@@ -163,6 +163,10 @@ class NumRu::GPhys
 	# axes_parts: return of get_axparts_k247
   # ToDo: change class method?
 	def restore_grid_k247( axes_parts )
+    self.class::restore_grid_k247( axes_parts )
+  end # def restore_grid_k247( axes_parts )
+
+	def self.restore_grid_k247( axes_parts )
 		nax = axes_parts["names"].length
 		anames = axes_parts["names"]
 		ax = {}
