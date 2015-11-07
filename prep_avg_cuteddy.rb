@@ -2,6 +2,9 @@ require_relative 'qgcm_k247'
 include K247_qgcm_common
 require_relative "varray_proto_k247"
 
+# ToDo
+#   - merge to qgcm_prep_k247.rb
+
 # memo
 #   - target is outdata_*/avg/*.nc
 #   - hmax_etc.nc has to be created.

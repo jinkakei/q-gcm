@@ -1,7 +1,7 @@
-require_relative 'qgcm_k247'
+require_relative 'lib_qgcm_k247'
 include K247_qgcm_common
 
-
+# ToDo: integrate as class method ( exec_all )
 def k247_qgcm_preprocess_wrapper( cname )
 # for test ( maybe more general )
   K247_qgcm_common::cd_outdata( cname )

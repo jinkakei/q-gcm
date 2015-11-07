@@ -1,6 +1,9 @@
-require_relative 'qgcm_k247'
+require_relative 'lib_qgcm_k247'
+include K247_qgcm_common
 require_relative "varray_proto_k247"
+
 # ToDo:
+#   - merge to qgcm_prep_k247.rb
 #    
 #   - What is required? 
 #    
@@ -8,6 +11,10 @@ require_relative "varray_proto_k247"
 #   - test 2day average ( aliasing? )
 #   - 
 
+
+
+# ToDo: 
+#   - for X daily average?
 def set_grid_day( nday )
   att_day = {"units"=>"days","long_name"=>"Time Axis"}
   na_day   = NArray.sfloat(nday).indgen + 0.5
@@ -16,7 +23,7 @@ def set_grid_day( nday )
 end # def set_grid_day
 
 def sshmax_get_with_ij_from_fname( fname )
-# fname -- ./outdata_*/avg/ocavg_??????day.nc 
+# fname -- avg/ocavg_??????day.nc 
   # ToDo: check fname and set mode
 # get 2d NArray 
   gp_p = GPhys::IO.open( fname, "p" )
@@ -25,25 +32,26 @@ def sshmax_get_with_ij_from_fname( fname )
 # 
   pmax, i, j = na_max_with_index_k247( na_p0 )
   m_to_cm = 100.0; grav = 9.8
-  hmax = pmax * m_to_cm / grav
+  p_to_ssh = m_to_cm / grav
+  hmax = pmax * p_to_ssh
   return hmax, i, j
 end
 
 
 watcher = K247_Main_Watch.new
-
-#outdir = "./outdata_nctest44/" # raw: 2km, 481x481, 730day
-#outdir = "./outdata_nctest46/" # raw: 4km, 481x481, 20day
-#outdir = "./outdata_nctest47/" # daily average: 4km, 481x481, 20day
-outdir = "./basic/" # daily average: 2km, 3841x1921, 730day
+# required time: 300sec ( 3840x1920, 730day)
+#cname = "basic"
+#cname = "test"
+cname = "boxocean"
+K247_qgcm_common::cd_outdata( cname )
 avgdir = "avg/"
-flist  = Dir::glob( outdir + avgdir + "*.nc").sort
-#  p flist[0]
+flist  = Dir::glob( avgdir + "*.nc").sort
+  exit_with_msg( "The Number of file in #{avgdir} is too few!") if flist.length < 2
+  #p flist[0]
+exit_with_msg( "#{Updfile::Hmax} is already exist!") if File.exist?( Updfile::Hmax )
 
-
-nc_fu = NetCDF.create( "#{outdir}hmax_etc.nc" )
   nday = flist.length
-  #nday = 10
+  #nday = 10 # for test
   # set day grid
     grid_day = set_grid_day( nday )
       na_day = grid_day.coord(0).val # (kari)
@@ -58,13 +66,10 @@ nc_fu = NetCDF.create( "#{outdir}hmax_etc.nc" )
   end
     attr_hmax = {"units"=>"cm","long_name"=>"SSH Max"}
     vap_hmax  = VArray_Proto_K247.new( hmax, attr_hmax, "hmax", grid_day )
-    vap_hmax.netcdf_write( nc_fu )
     attr_hmax_i = {"units"=>"","long_name"=>"SSH Max X Position"}
     vap_hmax_i  = VArray_Proto_K247.new( hmax_i, attr_hmax_i, "hmax_i", grid_day )
-    vap_hmax_i.netcdf_write( nc_fu )
     attr_hmax_j = {"units"=>"","long_name"=>"SSH Max Y Position"}
     vap_hmax_j  = VArray_Proto_K247.new( hmax_j, attr_hmax_j, "hmax_j", grid_day )
-    vap_hmax_j.netcdf_write( nc_fu )
   # set hdec
   hdec = NArray.sfloat( nday )
     xspd = NArray.sfloat( nday )
@@ -84,18 +89,38 @@ nc_fu = NetCDF.create( "#{outdir}hmax_etc.nc" )
     hdec[0] = hdec[1]; hdec[nday-1] = hdec[nday-2]
     attr_hdec = {"units"=>"cm/year","long_name"=>"SSH Max Decay Rate"}
     vap_hdec  = VArray_Proto_K247.new( hdec, attr_hdec, "hdec", grid_day )
-    vap_hdec.netcdf_write( nc_fu )
     xspd[0] = xspd[1]; xspd[nday-1] = xspd[nday-2]
     attr_xspd = {"units"=>"cm/s", \
                  "long_name"=>"Zonal Translation Speed of SSH Max"}
     vap_xspd  = VArray_Proto_K247.new( xspd, attr_xspd, "xspd", grid_day )
-    vap_xspd.netcdf_write( nc_fu )
     yspd[0] = yspd[1]; yspd[nday-1] = yspd[nday-2]
     attr_yspd = {"units"=>"cm/s", \
                  "long_name"=>"Meridional Translation Speed of SSH Max"}
     vap_yspd  = VArray_Proto_K247.new( yspd, attr_yspd, "yspd", grid_day )
-    vap_yspd.netcdf_write( nc_fu )
 
+nc_fu = NetCDF.create( Updfile::Hmax )
+  [ vap_hmax, vap_hmax_i, vap_hmax_j, \
+    vap_hdec, vap_xspd, vap_yspd \
+  ].each do | vap_v |
+    vap_v.netcdf_write( nc_fu )
+  end
 nc_fu.close
 
 watcher.end_process
+
+=begin
+# for test code
+if $0 == __FILE__ then
+# move test code to test_qgcm_k247.rb
+require 'minitest/autorun'
+require_relative "lib_qgcm_k247"
+
+class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
+
+  def setup
+
+  end
+end # Test_K247_qgcm_cuteddy
+
+end # if $0 == __FILE__ then
+=end

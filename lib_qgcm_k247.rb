@@ -10,6 +10,7 @@ module K247_qgcm_common
   module Updfile
     Param = "param_k247.nc"
     Monit = "monit_k247.nc"
+    Hmax  = "hmax_etc.nc"
   end
 
   def cd_qgcm_home
