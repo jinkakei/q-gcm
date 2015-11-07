@@ -10,9 +10,25 @@ module K247_qgcm_common
   def cd_qgcm_home
     Dir::chdir( QGCM_HOME_PATH )
   end
+
   def cd_qgcm_work
     cd_qgcm_home
     Dir::chdir( "work" )
+  end
+  
+  def cd_outdata( cname )
+    cd_qgcm_work
+    Dir::chdir( "outdata_#{cname}")
+  end
+
+  def chk_goalfile_here
+    goal_file = Dir::glob("./Goal__*__.txt")
+    if goal_file.length > 1
+      p goal_file
+      false_with_msg("Test Goal must be one and only")
+    end
+    false_with_msg("Goal__*__.txt is not exist") if goal_file[0] == nil
+    return goal_file
   end
 end # module K247_qgcm_common
 

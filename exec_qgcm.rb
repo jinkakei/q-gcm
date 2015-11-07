@@ -1,17 +1,18 @@
 #!/usr/bin/ruby
 require_relative 'lib_qgcm_k247'
+include K247_qgcm_common
 
 # How to use
 # $ exec_qgcm casename
 
 # ToDo
 #   - continue run
-
+#
 #   - merge gen_get_qgpara.rb
 #
 #   - refatoring
 #
-#   - 
+#   - exact methods to qgcm_prep
 #   - 
 #   - 
 #   - 
@@ -20,7 +21,6 @@ require_relative 'lib_qgcm_k247'
 
 watcher = K247_Main_Watch.new
 
-#=begin # temporary comment out
 # prepare
   exefname = "q-gcm"
   exit_with_msg ("The executable file #{exefname} is not exist") \
@@ -28,15 +28,18 @@ watcher = K247_Main_Watch.new
   
   exit_with_msg ("no casename") unless ARGV[0]
   cname = ARGV[0]
-  
+
   odir = "./outdata_#{cname}"
   exit_with_msg("outdir #{odir} already exists") if File.exist?( odir )
   
   exec_command( "mkdir #{odir}" )
   File.open( "outdata.dat", 'w' ) do | f | f.puts "#{odir}" end
   exec_command( "mkdir #{odir}/avg" ) # for averaged data
-#=end
-
+  
+  goalfile = K247_qgcm_common::chk_goalfile_here
+  return false unless goalfile
+  puts goalfile
+  exec_command( "cp -p #{goalfile[0]} #{odir}/" )
 
 # get qgcm paramters -> see below
 
@@ -45,7 +48,6 @@ watcher = K247_Main_Watch.new
   op_ncdf = "-I#{ncdf_path}/include -L#{ncdf_path}/lib -lnetcdf -lnetcdff"
   op_w = "-warn all"
 
-#=begin # temporary comment out
 # set boundary condition
   qfor = "k247_make_forcing_q-gcm"
   qfor_e = "#{qfor}.exe"
@@ -60,7 +62,6 @@ watcher = K247_Main_Watch.new
     exec_command("mv #{forc_link} #{forc_link+time_now_str_sec}~") \
         if File.exist?( forc_link )
   exec_command("ln -s #{forc_fname} #{forc_link}")
-#=end # temporary comment out
 
 
 # set initial condition

@@ -1,16 +1,14 @@
-#require 'minitest/autorun'
 require_relative 'qgcm_k247'
 include K247_qgcm_common
 
 
 def k247_qgcm_preprocess_wrapper( cname )
 # for test ( maybe more general )
-  K247_qgcm_common::cd_qgcm_work
-  Dir::chdir( "outdata_#{cname}")
+  K247_qgcm_common::cd_outdata( cname )
   return K247_qgcm_preprocess.new( cname )
 end
 
-# call from K247_qgcm_preprocess_wrapper( cname )
+# ! RULE ! call from K247_qgcm_preprocess_wrapper( cname )
 class K247_qgcm_preprocess
 # 2015-10-26: separate from K247_qgcm_data ( qgcm_k247.rb )
   attr_reader :cname, :dpath
@@ -38,7 +36,7 @@ class K247_qgcm_preprocess
     @cname = cname
   # init_settings
     @orgfile = [ "ocpo.nc", "monit.nc", "input_parameters.m" ]
-    set_greater_cname
+    return false unless set_greater_cname
   end
 
   def init_settings
@@ -53,14 +51,8 @@ class K247_qgcm_preprocess
   # delete old method
   #
   def set_greater_cname
-  # ver. 2015-10-06: use ./Goal__*__.txt
-    # ToDo: get from STDIN unless Goal__*__.txt
-    goal_file = Dir::glob("../Goal__*__.txt")
-    if goal_file.length > 1
-      p goal_file
-      false_with_msg("Test Goal must be one and only")
-    end
-    false_with_msg("Goal__*__.txt is not exist") if goal_file[0] == nil
+    goal_file = K247_qgcm_common::chk_goalfile_here
+    return false unless goal_file
     @gcname = goal_file[0].split("__")[1]
   end
   
@@ -461,8 +453,8 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
 
   def setup
     cd_testdir
-    @gcname = "test" # */testdir/Goal__test__.txt
-    @cname = "test"  #  */testdir/outdata_test/
+    @gcname = "test" # */testdir/outdata_test/Goal__test__.txt
+    @cname  = "test" # */testdir/outdata_test/
     Dir::chdir( "outdata_#{@cname}" ) # copied from work
     @obj = K247_qgcm_preprocess.new( @cname )
   end
