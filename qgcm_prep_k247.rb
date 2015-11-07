@@ -289,11 +289,10 @@ class K247_qgcm_preprocess
 ## monit.nc
   def monit_ncout
     out_fu = NetCDF.create( monit_get_updated_fname )
-    gp_mon = monit_read_data
+    gp_mon = monit_read_vall
     ret    = monit_write_data( out_fu, gp_mon )
     out_fu.close
   end
-
 
   def monit_get_updated_fname
     return "q-gcm_monit_#{@gcname}_#{@cname}.nc"
@@ -306,11 +305,11 @@ class K247_qgcm_preprocess
     return true
   end
 
-  def monit_read_data
+  def monit_read_vall
     fname = "monit.nc"
     gp_monit = {}
     monit_get_vname.each do | v |
-      gp_monit[ v ] = read_monit_var( fname, v)
+      gp_monit[ v ] = monit_read_var( fname, v)
     end
     return gp_monit
   end
@@ -320,7 +319,7 @@ class K247_qgcm_preprocess
               'et2moc' , 'etamoc' , 'kealoc', 'pkenoc']
     end
   
-    def read_monit_var( nf_name, vname )
+    def monit_read_var( nf_name, vname )
       gp_monv_org = GPhys::IO.open( nf_name, vname)
         new_grid     = monit_modify_grid( gp_monv_org )
         gp_monv_data = monit_modify_data( gp_monv_org )
@@ -348,7 +347,8 @@ class K247_qgcm_preprocess
         modified = origin.clone
           modified["time"] = monit_modify_time( origin["time"] )
           monit_modify_z( modified )
-        return gp_monv.restore_grid_k247( modified )
+      #  return gp_monv.restore_grid_k247( modified )
+        return GPhys::restore_grid_k247( modified )
       end
   
         def monit_modify_time( time_hash )
@@ -585,8 +585,8 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
 
 
 # monit
-  def test_monit_read_data
-    gp_monit = @obj.monit_read_data
+  def test_monit_read_vall
+    gp_monit = @obj.monit_read_vall
     assert_equal 8, gp_monit.length
   end
 
@@ -598,7 +598,7 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
   def test_monit_write_data
     fname = "test_monit.nc"
     out_fu = NetCDF.create( fname )
-    gp_mon = @obj.monit_read_data
+    gp_mon = @obj.monit_read_vall
     ret    = @obj.monit_write_data( out_fu, gp_mon )
     out_fu.close
     assert ret
@@ -606,7 +606,7 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
   end
 
   #def test_monit_modify_*
-  #  gp_mon = @obj.monit_read_data
+  #  gp_mon = @obj.monit_read_vall
   #end
 
 =begin
