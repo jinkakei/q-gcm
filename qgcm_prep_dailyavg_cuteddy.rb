@@ -12,6 +12,13 @@ def read_hmax_for_cuteddy( fname )
   return hmax_i, hmax_j, na_day
 end
 
+def get_gridinfo( fname )
+  xp = GPhys::IO.open( fname, "p" ).coord( "xp" ).val
+  dx = xp[1] - xp[0]
+  zp = GPhys::IO.open( fname, "p" ).coord(  "z" ).val
+  nz = zp.length
+  return dx, zp, nz
+end
 
 def get_gridval( fname )
   gp_p = GPhys::IO.open( fname, "p" )
@@ -22,7 +29,7 @@ def get_gridval( fname )
 end
 
 
-def cuteddy_set_grid( xprel, zp, na_day, nday=nil)
+def cuteddy_set_newgrid( xprel, zp, na_day, nday=nil)
   nday = na_day.length if nday == nil # for test
 
   yprel = xprel.clone
@@ -66,6 +73,13 @@ end #def cuteddy_set_grid( elen_km, dx, zp, na_day, nday=nil)
     return axes_parts
   end # def cuteddy_def_axparts
 
+def cuteddy_set_vaproto( newgrid )
+  pcut_attr = {"units"=>"m2.s-2", \
+               "long_name"=>"Ocean Dynamic Pressure near pmax", \
+               "radius"=>elen_km.to_s \
+              }
+  return VArray_Proto_K247.new( nil, pcut_attr, "p", newgrid )
+end
 
 watcher = K247_Main_Watch.new
 
@@ -96,9 +110,7 @@ nday = 10 # tmp
   flist  = Dir::glob( orgdir + "*.nc").sort
 
 # initial setting
-  xp, yp, zp = get_gridval( flist[0] )
-    dx = xp[1] - xp[0]
-    nz = zp.length
+  dx, zp, nz = get_gridinfo( flist[0] )
   # calc region length
     elen_km = 240.0 # default
     #elen_km = 360.0 # no problem
@@ -108,13 +120,9 @@ nday = 10 # tmp
     nxr = 2 * elen + 1
   # set new grid
     xprel = dx * NArray.sfloat( nxr ).indgen - dx * elen
-    new_grid = cuteddy_set_new_grid( xprel, zp, na_day, nday )
+    newgrid = cuteddy_set_newgrid( xprel, zp, na_day, nday )
   # set VArray Proto
-    pcut_attr = {"units"=>"m2.s-2", \
-                 "long_name"=>"Ocean Dynamic Pressure near pmax", \
-                 "radius"=>elen_km.to_s \
-                }
-    vap_pcut = VArray_Proto_K247.new( nil, pcut_attr, "p", new_grid )
+    vap_pcut = cuteddy_set_vaproto( newgrid )
 
 # read and output
   pcut = NArray.sfloat( nxr, nxr, nz, nday )
