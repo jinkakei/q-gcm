@@ -40,6 +40,15 @@ def read_hmax_for_cuteddy( fname )
   return hmax_i, hmax_j, na_day
 end
 
+def get_gridval( fname )
+  gp_p = GPhys::IO.open( fname, "p" )
+  xp = gp_p.coord( "xp" ).val
+  yp = gp_p.coord( "yp" ).val
+  zp  = gp_p.coord( "z" ).val
+  return xp, yp, zp
+end
+
+
 
 watcher = K247_Main_Watch.new
 
@@ -56,41 +65,37 @@ watcher = K247_Main_Watch.new
   hmax_fname =  "hmax_etc.nc"
   #p File.exist?( hmax_fname )
 
+
+# set out file name
+  out_fname = "test_pcut.nc"
+
 # read hmax, i, j
   hmax_i, hmax_j, na_day = read_hmax_for_cuteddy( hmax_fname)
 #  nday = na_day.length
 nday = 10 # tmp
 
-
 # get original file
   orgdir = "avg/"
   flist  = Dir::glob( orgdir + "*.nc").sort
 
-# parameters
-  out_fname = "test_pcut.nc"
-
 # initial setting
-  gp_p = GPhys::IO.open( flist[0], "p" )
-  #p gp_p
-  xp = gp_p.coord( "xp" ).val
-  yp = gp_p.coord( "yp" ).val
-  zp  = gp_p.coord( "z" ).val
-  # calc region length
+  xp, yp, zp = get_gridval( flist[0] )
     dx = xp[1] - xp[0]
-    elen_km = 240.0 
-    #elen_km = 360.0 
+    nz = zp.length
+  # calc region length
+    elen_km = 240.0 # default
+    #elen_km = 360.0 # no problem
     #elen_km = 400.0 # nomemory error when NetCDFWrite
     #elen_km = 480.0 # no memory error when cuteddy (for 730day)
     elen = ( elen_km / dx ).to_i
-      nxr = 2 * elen + 1
-    nz = zp.length
+    nxr = 2 * elen + 1
   # set new grid
     xprel = dx * NArray.sfloat( nxr ).indgen - dx * elen
     yprel = xprel.clone
     axes_parts = def_axparts_cuteddy
     axes_parts["xprel"]["val"] = xprel
     axes_parts["yprel"]["val"] = yprel
-    axes_parts[  "z"  ]["val"] = gp_p.coord( "z" ).val
+    axes_parts[  "z"  ]["val"] = zp
     axes_parts["time" ]["val"] = na_day[0..nday-1]
     new_grid = GPhys::restore_grid_k247( axes_parts )
   # set VArray Proto
@@ -106,7 +111,7 @@ nday = 10 # tmp
   for tn in 0..nday-1
     puts "#{tn} / #{nday}" if ( tn % info_day ) == 0
     gp_p = GPhys::IO.open( flist[tn], "p" )
-    pcut[ 0..-1, 0..-1,0..-1, tn ]= \
+    pcut[ 0..-1, 0..-1, 0..-1, tn ] = \
           gp_p.val[ hmax_i[tn]-elen..hmax_i[tn]+elen, hmax_j[tn]-elen..hmax_j[tn]+elen, 0..-1 ]
     # ??? subset ( by "cut" ) cannot convert NArray ( by "val" )???
     #      gp_p.cut( \
