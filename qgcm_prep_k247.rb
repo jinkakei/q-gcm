@@ -6,6 +6,7 @@ def k247_qgcm_preprocess_wrapper( cname )
 # for test ( maybe more general )
   K247_qgcm_common::cd_outdata( cname )
   prep = K247_qgcm_preprocess.new( cname )
+  exit_with_msg("!Error!") unless prep.chk_before
   prep.monit_ncout
   prep.para_ncout
 end
@@ -28,34 +29,34 @@ class K247_qgcm_preprocess
 ##  contents@2015-09-02
 ##   - unify_outdata( cname )
 ##   - set_filename( cname )
-##     --  set_greater_cname( arg=nil)
+##     --  get_greater_cname( arg=nil)
 ##   - monit_write_data( input )
 ##   - write_inpara( input )
 ##     -- read_inpara( input )
 ##   - modify_grid( apts )
 
   def initialize( cname )
-    @cname = cname
-  # init_settings
+    @cname   = cname
+    @gcname  = get_greater_cname
     @orgfile = [ "ocpo.nc", "monit.nc", "input_parameters.m" ]
-    return false unless set_greater_cname
-  end
-
-  def init_settings
-  #  set_dpath # 2015-10-27: erase after refactoring of qgcm_prep
   end
 
   def exist?
     return true
   end
+  
+  # ToDo: Under construction
+  def chk_before
+    if ( @gcname == nil ) or !( orgfile_exist? )
+      return false 
+    end
+    return true
+  end
 
-# ToDo: 
-  # delete old method
-  #
-  def set_greater_cname
+  def get_greater_cname
     goal_file = K247_qgcm_common::chk_goalfile_here
-    return false unless goal_file
-    @gcname = goal_file[0].split("__")[1]
+    return nil if goal_file == []
+    return goal_file[0].split("__")[1]
   end
   
   def orgfile_exist?
@@ -486,10 +487,12 @@ class Test_K247_qgcm_preprocess < MiniTest::Unit::TestCase
     assert @obj.exist?
   end
 
-# 2015-10-27: erase after refactoring of qgcm_prep
-#  def test_set_dpath
-#    assert_equal "./outdata_#{@cname}/", @obj.dpath
-#  end
+  def test_init_in_emptydir
+    print "test_init_in_emptydir: "
+    Dir::chdir( ".." )
+    obj2 = K247_qgcm_preprocess.new( @cname )
+    refute obj2.gcname
+  end
 
   def test_check_init_gcname
     assert_equal @gcname, @obj.gcname
