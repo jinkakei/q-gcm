@@ -5,3 +5,4 @@ log/
 testdir/
 # temporary
 src_tmp
+test_tmp.rb
