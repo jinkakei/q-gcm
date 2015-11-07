@@ -5,40 +5,13 @@ require_relative "varray_proto_k247"
 #va = VArray_Proto_K247.new( \
 #       NArray.sfloat(10).indgen, {"units"=>"km"}, "xaxis")
 
-# for GPhys::restore_grid_k247
-def def_axparts_cuteddy
-  axes_parts = {"names" => [ "xprel", "yprel", "z", "time" ]}
-
-  hash_xpr = { "name"=> nil, "atts"=>nil, "val"=>nil}
-		  hash_xpr["name"] = "xprel"
-		  hash_xpr["atts"] = { "units"=>"km", \
-                           "long_name"=>"X distance from pmax (p-grid)"}
-  axes_parts["xprel"] = hash_xpr
-  hash_ypr = { "name"=> nil, "atts"=>nil, "val"=>nil}
-		  hash_ypr["name"] = "yprel"
-		  hash_ypr["atts"] = { "units"=>"km", \
-                           "long_name"=>"Y distance from pmax (p-grid)"}
-  axes_parts["yprel"] = hash_ypr
-  hash_z = { "name"=> nil, "atts"=>nil, "val"=>nil}
-		  hash_z["name"] = "z"
-		  hash_z["atts"] = { "units"=>"km", \
-                         "long_name"=>"Ocean mid-layer depth axis"}
-  axes_parts["z"] = hash_z
-  hash_t = { "name"=> nil, "atts"=>nil, "val"=>nil}
-		  hash_t["name"] = "time"
-		  hash_t["atts"] = { "units"=>"days", \
-                         "long_name"=>"Time Axis"}
-  axes_parts["time"] = hash_t
-
-  return axes_parts
-end # def def_axparts_cuteddy
-
 def read_hmax_for_cuteddy( fname )
   hmax_i = GPhys::IO.open( fname, "hmax_i" ).val 
   hmax_j = GPhys::IO.open( fname, "hmax_j" ).val
   na_day = GPhys::IO.open( fname, "hmax_i" ).coord( "time" ).val
   return hmax_i, hmax_j, na_day
 end
+
 
 def get_gridval( fname )
   gp_p = GPhys::IO.open( fname, "p" )
@@ -48,6 +21,50 @@ def get_gridval( fname )
   return xp, yp, zp
 end
 
+
+def cuteddy_set_grid( xprel, zp, na_day, nday=nil)
+  nday = na_day.length if nday == nil # for test
+
+  yprel = xprel.clone
+  axes_parts = cuteddy_def_axparts
+    axes_parts["xprel"]["val"] = xprel
+    axes_parts["yprel"]["val"] = yprel
+    axes_parts[  "z"  ]["val"] = zp
+    axes_parts["time" ]["val"] = na_day[0..nday-1]
+
+  return GPhys::restore_grid_k247( axes_parts )
+end #def cuteddy_set_grid( elen_km, dx, zp, na_day, nday=nil)
+
+  # for GPhys::restore_grid_k247
+  # ToDo:
+  #   - refactoring 
+  def cuteddy_def_axparts
+  
+    axes_parts = {"names" => [ "xprel", "yprel", "z", "time" ]}
+  
+    hash_xpr = { "name"=> nil, "atts"=>nil, "val"=>nil}
+  		  hash_xpr["name"] = "xprel"
+  		  hash_xpr["atts"] = { "units"=>"km", \
+                             "long_name"=>"X distance from pmax (p-grid)"}
+    axes_parts["xprel"] = hash_xpr
+    hash_ypr = { "name"=> nil, "atts"=>nil, "val"=>nil}
+  		  hash_ypr["name"] = "yprel"
+  		  hash_ypr["atts"] = { "units"=>"km", \
+                             "long_name"=>"Y distance from pmax (p-grid)"}
+    axes_parts["yprel"] = hash_ypr
+    hash_z = { "name"=> nil, "atts"=>nil, "val"=>nil}
+  		  hash_z["name"] = "z"
+  		  hash_z["atts"] = { "units"=>"km", \
+                           "long_name"=>"Ocean mid-layer depth axis"}
+    axes_parts["z"] = hash_z
+    hash_t = { "name"=> nil, "atts"=>nil, "val"=>nil}
+  		  hash_t["name"] = "time"
+  		  hash_t["atts"] = { "units"=>"days", \
+                           "long_name"=>"Time Axis"}
+    axes_parts["time"] = hash_t
+  
+    return axes_parts
+  end # def cuteddy_def_axparts
 
 
 watcher = K247_Main_Watch.new
@@ -91,13 +108,7 @@ nday = 10 # tmp
     nxr = 2 * elen + 1
   # set new grid
     xprel = dx * NArray.sfloat( nxr ).indgen - dx * elen
-    yprel = xprel.clone
-    axes_parts = def_axparts_cuteddy
-    axes_parts["xprel"]["val"] = xprel
-    axes_parts["yprel"]["val"] = yprel
-    axes_parts[  "z"  ]["val"] = zp
-    axes_parts["time" ]["val"] = na_day[0..nday-1]
-    new_grid = GPhys::restore_grid_k247( axes_parts )
+    new_grid = cuteddy_set_new_grid( xprel, zp, na_day, nday )
   # set VArray Proto
     pcut_attr = {"units"=>"m2.s-2", \
                  "long_name"=>"Ocean Dynamic Pressure near pmax", \
