@@ -2,6 +2,8 @@
 require "numru/gphys"
 include NumRu
 
+# 2016-02-19: copy to ~/lib_k247/
+# 
 # ToDo
 #   - under construction ( build basics )
 #   - add lib_k247
@@ -149,7 +151,7 @@ class VArray_Proto_K247
     netcdf_write( nc_fu, grid )
     nc_fu.close
   end
-end
+end # class VArray_Proto_K247
 
 
 
